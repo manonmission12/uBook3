@@ -1,0 +1,55 @@
+/* --- OVERRIDE KHUSUS MOBILE --- */
+@media (max-width: 768px) {
+    
+    /* 1. NAVBAR COMPACT */
+    .reader-nav { padding: 0 10px; height: 50px; gap: 8px; justify-content: flex-start; }
+    .nav-left { flex: 0 0 auto; margin-right: 5px; }
+    #bookTitleDisplay { max-width: 80px; font-size: 0.8rem; }
+    
+    .nav-center { flex: 0 0 auto; gap: 5px; font-size: 0.8rem; }
+    #pageInput { width: 30px; font-size: 0.8rem; }
+    
+    .nav-right { flex: 1; justify-content: flex-end; }
+    
+    /* Tombol Mobile Muncul */
+    .mobile-toggles { display: flex !important; gap: 5px; margin-right: 5px; }
+    .desktop-tools { display: none !important; }
+    .mobile-only { display: block !important; }
+    
+    .tool-btn, .nav-btn { width: 30px; height: 30px; font-size: 0.8rem; }
+
+    /* 2. LAYOUT 1 KOLOM */
+    .main-layout { flex-direction: column; }
+    
+    /* Hapus Sidebar dari Layout Utama (Jadi Fixed Drawer) */
+    .sidebar {
+        position: fixed; bottom: 0; left: 0; width: 100%; height: 50vh;
+        z-index: 2001; border: none; border-radius: 20px 20px 0 0;
+        transform: translateY(110%); transition: transform 0.3s ease;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+    }
+    
+    .left-sidebar { background: #1f2937; border-top: 3px solid #10b981; }
+    .right-sidebar { background: #1f2937; border-top: 3px solid #f59e0b; height: 60vh; }
+
+    .sidebar.active { transform: translateY(0); }
+
+    /* Thumbnail List Horizontal */
+    .thumbnail-list { flex-direction: row; overflow-x: auto; padding: 15px; align-items: flex-start; gap: 10px; }
+    .thumb-item { min-width: 80px; }
+
+    /* 3. PDF AREA FULL */
+    .content-area { 
+        padding: 10px 0; /* Hapus padding samping biar full */
+        align-items: flex-start; /* PDF start from top */
+        background: #222;
+    }
+    
+    .pdf-wrapper { 
+        box-shadow: none; /* Ringan di HP */
+    }
+
+    /* BACKDROP */
+    .backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; }
+    .backdrop.active { display: block; }
+}
