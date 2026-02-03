@@ -1,0 +1,191 @@
+/* --- PROFILE STYLING LENGKAP --- */
+
+/* 1. CONTAINER UTAMA (LAYOUT GRID) */
+.profile-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
+/* 2. KARTU PROFIL (KIRI) */
+.profile-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 100px; 
+    z-index: 10;
+}
+
+/* --- AVATAR & EDIT FOTO --- */
+.avatar-wrapper {
+    position: relative;
+    width: 110px;
+    margin: 0 auto 10px; /* Kurangi margin bawah dikit biar deket sama hint */
+}
+
+.avatar-large {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 3.5rem;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    border: 4px solid var(--bg-card);
+    box-shadow: 0 0 0 2px var(--border);
+}
+
+.avatar-large img {
+    width: 100%; height: 100%; object-fit: cover;
+}
+
+/* Tombol Kamera Kecil */
+.btn-edit-photo {
+    position: absolute;
+    bottom: 5px; right: 0;
+    width: 36px; height: 36px;
+    background: #3b82f6; /* Warna Biru */
+    color: white;
+    border: 3px solid var(--bg-card);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.btn-edit-photo:hover {
+    transform: scale(1.1);
+    background: #2563eb;
+}
+
+/* TEKS HINT UKURAN FOTO (BARU) */
+.photo-hint {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+/* -------------------------- */
+
+.profile-header h1 {
+    font-size: 1.4rem; margin-bottom: 5px; color: var(--text-primary); font-weight: 700;
+}
+.user-role { color: #3b82f6; font-weight: 600; font-size: 0.9rem; margin-bottom: 5px; }
+.join-date { color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 25px; }
+
+/* STATISTIK */
+.profile-stats {
+    display: flex; justify-content: space-around;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0; margin-bottom: 25px;
+}
+.stat-item h3 { font-size: 1.5rem; margin: 0; color: var(--text-primary); }
+.stat-item span { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+
+/* TOMBOL KELUAR */
+.btn-logout {
+    width: 100%;
+    padding: 12px;
+    background: #fee2e2; color: #ef4444;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    font-weight: 600; cursor: pointer; transition: 0.3s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 0.95rem;
+}
+.btn-logout:hover { background: #ef4444; color: white; border-color: #ef4444; }
+
+
+/* 3. AREA KONTEN KANAN (PEMBUNGKUS) */
+.profile-content-right {
+    display: flex;
+    flex-direction: column;
+    gap: 30px; 
+}
+
+/* SECTION BUKU */
+.user-uploads-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: var(--shadow);
+}
+
+.user-uploads-section h2 {
+    font-size: 1.2rem; margin-bottom: 20px; color: var(--text-primary);
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border); padding-bottom: 15px;
+}
+
+/* GRID MINI */
+.book-grid-mini {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px;
+}
+
+/* KARTU BUKU MINI */
+.mini-book-card {
+    background: var(--bg-card);
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border);
+    transition: 0.2s; cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.mini-book-card:hover { 
+    transform: translateY(-5px); 
+    border-color: var(--text-primary); 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.mini-book-card img {
+    width: 100%; height: 190px; object-fit: cover;
+    border-bottom: 1px solid var(--border);
+}
+.mini-info { padding: 12px; }
+.mini-info h4 { 
+    font-size: 0.9rem; margin: 0; color: var(--text-primary); 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    font-weight: 600;
+}
+.mini-info p { font-size: 0.75rem; color: var(--text-secondary); margin: 5px 0 0; }
+
+/* PESAN KOSONG */
+.empty-msg { 
+    color: var(--text-tertiary); font-style: italic; text-align: center; 
+    padding: 20px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    grid-column: 1 / -1; 
+}
+
+/* 4. RESPONSIF (MOBILE) */
+@media (max-width: 850px) {
+    .profile-container { 
+        grid-template-columns: 1fr; 
+        gap: 20px; 
+    }
+    .profile-card { 
+        position: static; 
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .profile-content-right {
+        width: 100%;
+    }
+    .book-grid-mini { 
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+    }
+}

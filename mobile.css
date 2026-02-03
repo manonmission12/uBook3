@@ -1,0 +1,60 @@
+/* --- MOBILE RESPONSIVE STYLES --- */
+@media (max-width: 768px) {
+
+    /* 1. NAVIGASI MOBILE */
+    .mobile-nav-actions {
+        display: flex !important; /* TAMPILKAN TOMBOL MOBILE (Burger + Tema) */
+        align-items: center;
+        gap: 15px;
+    }
+
+    .menu-toggle {
+        display: block !important;
+    }
+
+    /* Sembunyikan Tombol Dark Mode yang ada DI DALAM menu (versi desktop) */
+    .desktop-only {
+        display: none !important;
+    }
+
+    .nav-menu {
+        position: absolute; top: 100%; left: 0; right: 0;
+        background-color: var(--bg-card); flex-direction: column;
+        padding: 20px; border-bottom: 1px solid var(--border);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        display: none; gap: 15px; z-index: 999;
+    }
+    .nav-menu.active { display: flex; }
+
+    .nav-links, .nav-right {
+        flex-direction: column; width: 100%; text-align: center; gap: 15px;
+    }
+    .nav-right {
+        border-top: 1px solid var(--border); padding-top: 15px;
+        justify-content: center;
+    }
+
+    /* 2. GRID BUKU */
+    .book-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important; 
+        gap: 15px;
+    }
+    .book-card img { height: 200px; }
+    .book-info h3 { font-size: 0.95rem; }
+
+    /* 3. TOOLBAR */
+    .dashboard-toolbar { flex-direction: column; gap: 10px; }
+    .search-box, .sort-box { width: 100%; max-width: none; }
+
+    /* 4. MODAL */
+    .modal-content {
+        flex-direction: column; width: 95%; height: 85vh; overflow-y: auto;
+    }
+    .modal-body { flex-direction: column; }
+    .modal-img-wrapper { padding: 20px; min-height: 250px; }
+    .modal-img-wrapper img { max-height: 220px; }
+    .modal-info { padding: 20px; }
+    
+    /* 5. HEADER */
+    .page-title { font-size: 1.8rem; }
+}

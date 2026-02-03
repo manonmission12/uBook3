@@ -1,0 +1,226 @@
+/* --- DASHBOARD STYLING (DESKTOP BASE) --- */
+
+/* 1. NAVBAR FIXED */
+.navbar {
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 1000;
+    padding: 0.8rem 0;
+}
+
+.nav-container {
+    width: 90%; max-width: 1200px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+}
+
+.brand {
+    font-size: 1.4rem; font-weight: 800; color: var(--text-primary);
+    text-decoration: none; display: flex; align-items: center; gap: 10px;
+}
+.brand i { color: #10b981; }
+
+.nav-menu { display: flex; align-items: center; gap: 30px; }
+.nav-links { display: flex; gap: 20px; }
+.nav-link { 
+    text-decoration: none; color: var(--text-secondary); font-weight: 600; 
+    transition: 0.2s; font-size: 0.95rem; 
+}
+.nav-link:hover, .nav-link.active { color: #10b981; }
+.nav-right { display: flex; align-items: center; gap: 15px; }
+
+/* STYLE TOMBOL DARK MODE */
+.theme-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-primary); width: 38px; height: 38px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s ease;
+}
+.theme-btn:hover { 
+    background-color: var(--bg-input); 
+    color: #f59e0b; 
+    transform: rotate(15deg); 
+}
+
+/* --- MOBILE ACTIONS (HIDDEN DI DESKTOP) --- */
+/* Ini kuncinya: Memastikan tombol burger & dark mode mobile TIDAK MUNCUL di Laptop */
+.mobile-nav-actions { 
+    display: none; 
+}
+.menu-toggle { 
+    display: none; background: none; border: none; 
+    font-size: 1.5rem; color: var(--text-primary); cursor: pointer; 
+}
+
+/* 2. LAYOUT UTAMA */
+.dashboard-content { 
+    width: 100%; max-width: 1200px; margin: 0 auto; padding: 2rem 5% 4rem; 
+    box-sizing: border-box; min-height: 80vh;
+}
+
+.header-section { text-align: center; margin-bottom: 2.5rem; }
+.page-title { font-size: 2.5rem; margin-bottom: 10px; color: var(--text-primary); font-weight: 800; }
+.page-subtitle { color: var(--text-secondary); font-size: 1.1rem; }
+
+/* 3. GRID BUKU */
+.book-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+    gap: 25px; width: 100%; 
+}
+
+.book-card {
+    background: var(--bg-card); border-radius: 12px; 
+    border: 1px solid var(--border); transition: all 0.3s ease;
+    display: flex; flex-direction: column; cursor: pointer; 
+    overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    height: 100%;
+}
+.book-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: var(--text-primary); }
+.book-card img { 
+    width: 100%; height: 280px; object-fit: cover; 
+    border-bottom: 1px solid var(--border);
+}
+
+.book-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+.book-info h3 { font-size: 1rem; line-height: 1.4; color: var(--text-primary); margin-bottom: 6px; font-weight: 700; }
+.book-info p { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 15px 0; }
+
+.tag {
+    font-size: 0.7rem; padding: 4px 10px; border-radius: 4px;
+    background: var(--bg-input); color: var(--text-secondary); 
+    font-weight: 700; text-transform: uppercase; border: 1px solid var(--border);
+    width: fit-content; margin-bottom: 8px;
+}
+
+.card-footer { 
+    margin-top: auto; display: flex; justify-content: space-between; 
+    align-items: center; padding-top: 10px; border-top: 1px solid var(--border); 
+}
+.interactive-stars i { font-size: 1rem; color: #f59e0b; }
+.interactive-stars i.filled { color: #f59e0b; }
+.rating-number { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
+
+/* 4. TOOLBAR & KATEGORI */
+.dashboard-toolbar { display: flex; gap: 15px; justify-content: center; margin-bottom: 2rem; flex-wrap: wrap; }
+.search-box { flex: 2; min-width: 250px; position: relative; }
+.search-box input {
+    width: 100%; padding: 14px 20px 14px 45px;
+    background: var(--bg-input); border: 2px solid var(--border);
+    border-radius: 12px; color: var(--text-primary); outline: none; box-sizing: border-box;
+}
+.search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); }
+.sort-box {
+    flex: 1; min-width: 180px; position: relative;
+    background: var(--bg-input); border: 2px solid var(--border); border-radius: 12px;
+    display: flex; align-items: center; padding: 0 15px; box-sizing: border-box;
+}
+.sort-box select { width: 100%; border: none; background: transparent; color: var(--text-primary); outline: none; cursor: pointer; padding: 12px 0; }
+
+.category-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 3rem; }
+.btn-cat {
+    padding: 8px 18px; border-radius: 50px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-primary); font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; transition: 0.2s; font-family: inherit;
+}
+[data-theme="dark"] .btn-cat:not(.active) { background: #374151; color: #ffffff; border-color: #4b5563; }
+.btn-cat:hover { background: var(--bg-input); transform: translateY(-2px); }
+.btn-cat.active { background: #10b981 !important; color: #ffffff !important; border-color: #10b981 !important; }
+
+/* 5. PROFILE & DROPDOWN */
+.profile-menu { position: relative; }
+.profile-trigger { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--border); object-fit: cover; }
+
+.dropdown-menu {
+    position: absolute; top: 50px; right: 0; width: 200px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    display: none; flex-direction: column; overflow: hidden; z-index: 100;
+}
+.dropdown-menu.active { display: flex; }
+.dropdown-item { padding: 12px 15px; text-decoration: none; color: var(--text-primary); display: flex; gap: 10px; align-items: center; transition: 0.2s; }
+.dropdown-item:hover { background: var(--bg-input); }
+
+/* 6. MODAL & STATUS BUTTON */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px; backdrop-filter: blur(3px); box-sizing: border-box; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: var(--bg-card); width: 100%; max-width: 800px; border-radius: 12px; display: flex; overflow: hidden; max-height: 90vh; }
+.modal-body { display: flex; width: 100%; }
+.modal-img-wrapper { flex: 1; background: var(--bg-input); display: flex; justify-content: center; align-items: center; padding: 30px; }
+.modal-img-wrapper img { max-width: 100%; max-height: 350px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+.modal-info { flex: 1.5; padding: 30px; overflow-y: auto; color: var(--text-primary); position: relative; }
+.close-btn { position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer; color: var(--text-primary); }
+.btn-primary { background: var(--text-primary); color: var(--bg-card); padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 1rem; width: 100%; margin-top: 20px; }
+
+.book-status-wrapper { position: absolute; top: 10px; right: 10px; z-index: 10; }
+.btn-status-toggle { width: 35px; height: 35px; border-radius: 50%; background: rgba(255,255,255,0.9); border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; color: #555; }
+.status-dropdown { position: absolute; top: 40px; right: 0; background: var(--bg-card); border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); display: none; flex-direction: column; width: 160px; overflow: hidden; z-index: 20; }
+.status-dropdown.active { display: flex; }
+.status-option { padding: 10px; border: none; background: none; text-align: left; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+.status-option:hover { background: var(--bg-input); }
+.btn-status-toggle.want { color: #f59e0b; }
+.btn-status-toggle.reading { color: #3b82f6; }
+.btn-status-toggle.finished { color: #10b981; }
+
+/* 7. FOOTER STYLING (LENGKAP) */
+.main-footer {
+    background-color: var(--bg-card);
+    border-top: 1px solid var(--border);
+    padding: 4rem 0 2rem;
+    margin-top: auto;
+}
+
+.footer-content {
+    width: 90%; max-width: 1200px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr; /* Kolom 1 lebih lebar */
+    gap: 40px;
+    margin-bottom: 3rem;
+}
+
+.footer-section h3 {
+    color: var(--text-primary); font-size: 1.5rem; margin-bottom: 15px;
+    display: flex; align-items: center; gap: 10px;
+}
+
+.footer-section p {
+    color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px; font-size: 0.95rem;
+}
+
+.footer-section h4 {
+    color: var(--text-primary); font-size: 1.1rem; margin-bottom: 20px; font-weight: 700;
+}
+
+.footer-section ul { list-style: none; padding: 0; }
+.footer-section ul li { margin-bottom: 12px; }
+.footer-section ul li a {
+    color: var(--text-secondary); text-decoration: none; transition: 0.2s; font-size: 0.95rem;
+}
+.footer-section ul li a:hover { color: #10b981; padding-left: 5px; }
+
+/* Social Icons */
+.social-links { display: flex; gap: 15px; }
+.social-links a {
+    width: 35px; height: 35px; background: var(--bg-input); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-primary); text-decoration: none; transition: 0.3s;
+    border: 1px solid var(--border);
+}
+.social-links a:hover {
+    background: #10b981; color: white; transform: translateY(-3px); border-color: #10b981;
+}
+
+.copyright {
+    border-top: 1px solid var(--border); padding-top: 2rem;
+    text-align: center; color: var(--text-tertiary); font-size: 0.9rem;
+}
+
+/* Responsive Footer HP */
+@media (max-width: 768px) {
+    .footer-content {
+        grid-template-columns: 1fr; /* Jadi 1 kolom */
+        text-align: center; gap: 30px;
+    }
+    .footer-section h3, .social-links { justify-content: center; }
+}
