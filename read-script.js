@@ -1,43 +1,35 @@
-// --- CONFIGURASI PDF.JS ---
+// --- 1. KONFIGURASI PDF.JS ---
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
-// Pastikan worker mengarah ke versi yang sama
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-// --- GLOBAL VARIABLES ---
+// --- 2. VARIABEL GLOBAL ---
 let pdfDoc = null,
     pageNum = 1,
     pageRendering = false,
     pageNumPending = null,
-    scale = 1.0, 
+    scale = 1.2, // Zoom default untuk Desktop (sedikit lebih besar)
     canvas = document.getElementById('the-canvas'),
     ctx = canvas.getContext('2d'),
     highlightCanvas = document.getElementById('highlight-canvas'),
     hCtx = highlightCanvas.getContext('2d');
 
-// State Aplikasi
+// State Tools
 let isDrawing = false;
-let currentTool = 'move'; // Default 'move' agar aman di mobile
-let annotationData = {}; // Format: { pageNum: [ {tool, points, color, width} ] }
+let currentTool = 'move'; // move, highlight, eraser
+let annotationData = {}; // Format: { 1: [path, path], 2: [...] }
 let undoStack = [];
-let notesData = {}; // Format: { pageNum: [ {text, date} ] }
+let notesData = {}; // Format: { 1: [text, text] }
 
-// --- INISIALISASI (SAAT LOAD) ---
+// --- 3. INISIALISASI ---
 document.addEventListener('DOMContentLoaded', () => {
     
-    // 1. Ambil Parameter URL
+    // Ambil Parameter URL
     const urlParams = new URLSearchParams(window.location.search);
     const title = urlParams.get('title');
     const source = urlParams.get('source');
 
     if (title) document.getElementById('bookTitleDisplay').innerText = decodeURIComponent(title);
-    
-    // 2. Deteksi Mobile untuk Scale Awal
-    if (window.innerWidth < 768) {
-        scale = 0.6; // Nilai sementara, nanti akan di-override oleh Auto-Fit
-        setActiveTool('move'); // Paksa mode move di awal buat HP biar bisa swipe
-    }
 
-    // 3. Load Buku
     if (source) {
         loadBook(decodeURIComponent(source));
     } else {
@@ -45,40 +37,31 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'index.html';
     }
 
-    // 4. Setup Semua Event Listener
-    setupNavEvents();      // Navigasi Halaman & Zoom
-    setupToolEvents();     // Tools Desktop & Mobile (Stabilo, Eraser, dll)
-    setupDrawingEvents();  // Logic Menggambar di Canvas
-    setupSwipeEvents();    // Logic Swipe Jari
-    setupMobileUI();       // Logic Bottom Sheet Mobile
-    setupNotesEvents();    // Logic Catatan
-    setupRatingEvents();   // Logic Modal Rating
-    
-    // Auto Resize saat layar diputar/diubah ukurannya
-    window.addEventListener('resize', () => {
-        if(pdfDoc) queueRenderPage(pageNum);
-    });
+    // Setup Event Listeners
+    setupNavigation();
+    setupTools();
+    setupDrawing();
+    setupNotes();
 });
 
-// --- FUNGSI UTAMA PDF ---
+// --- 4. CORE PDF FUNCTIONS ---
 
 function loadBook(url) {
-    const loader = document.getElementById('loadingOverlay');
-    if(loader) loader.classList.add('active');
+    document.getElementById('loadingOverlay').classList.add('active');
     
     pdfjsLib.getDocument(url).promise.then(pdf => {
         pdfDoc = pdf;
-        if(document.getElementById('pageTotal')) document.getElementById('pageTotal').innerText = pdf.numPages;
-        if(loader) loader.classList.remove('active');
+        document.getElementById('pageTotal').innerText = pdf.numPages;
+        document.getElementById('loadingOverlay').classList.remove('active');
         
         // Render Halaman Pertama
         renderPage(pageNum);
-        // Generate Thumbnail (Desktop Sidebar)
+        // Buat Thumbnail di Sidebar Kiri
         generateThumbnails(pdf);
     }).catch(err => {
         console.error(err);
-        alert("Gagal memuat PDF. Pastikan file valid.");
-        if(loader) loader.classList.remove('active');
+        alert("Gagal memuat PDF.");
+        document.getElementById('loadingOverlay').classList.remove('active');
     });
 }
 
@@ -86,46 +69,27 @@ function renderPage(num) {
     pageRendering = true;
     
     pdfDoc.getPage(num).then(page => {
-        // --- SMART AUTO-FIT LOGIC ---
-        const container = document.getElementById('pdfContainer');
+        const viewport = page.getViewport({scale: scale});
         
-        // Desktop padding ~80px, Mobile 0px (Full Width)
-        const padding = window.innerWidth < 768 ? 0 : 80;
-        const availableWidth = container.clientWidth - padding;
-        
-        const viewportBase = page.getViewport({scale: 1.0});
-        
-        let finalScale = scale;
-
-        // JIKA DI HP: Abaikan scale user, paksa Fit Width
-        if (window.innerWidth < 768) {
-            finalScale = availableWidth / viewportBase.width;
-            scale = finalScale; // Sinkronkan variabel global
-        }
-
-        const viewport = page.getViewport({scale: finalScale});
-        
-        // Resize Canvas
+        // Atur Ukuran Canvas & Layer
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         highlightCanvas.height = viewport.height;
         highlightCanvas.width = viewport.width;
         
-        // Resize Text Layer
         const textLayer = document.getElementById('text-layer');
         textLayer.style.width = `${viewport.width}px`;
         textLayer.style.height = `${viewport.height}px`;
 
-        // Render PDF ke Canvas
+        // Render PDF
         const renderContext = { canvasContext: ctx, viewport: viewport };
         const renderTask = page.render(renderContext);
 
         renderTask.promise.then(() => {
             pageRendering = false;
-            
-            // Render Text Layer (Agar teks bisa diblok/copy)
             return page.getTextContent();
         }).then(textContent => {
+            // Render Teks (agar bisa diblok/copy)
             textLayer.innerHTML = '';
             pdfjsLib.renderTextLayer({
                 textContent: textContent,
@@ -134,18 +98,23 @@ function renderPage(num) {
                 textDivs: []
             });
 
-            // Gambar Ulang Coretan (Anotasi)
-            redrawAnnotations(); 
+            // Gambar Ulang Coretan (Stabilo)
+            redrawAnnotations();
             
-            // Update UI Info
-            if(document.getElementById('pageInput')) document.getElementById('pageInput').value = num;
-            if(document.getElementById('zoomLevel')) document.getElementById('zoomLevel').innerText = Math.round(finalScale * 100) + '%';
+            // Update UI
+            document.getElementById('pageInput').value = num;
+            document.getElementById('zoomLevel').innerText = Math.round(scale * 100) + '%';
             
-            checkFinishButton();
-            updateActiveThumb(); // Highlight sidebar
-            renderNotes(); // Tampilkan catatan halaman ini
+            // Tampilkan tombol selesai jika halaman terakhir
+            const finishBtn = document.getElementById('finishBtn');
+            if (pageNum === pdfDoc.numPages) finishBtn.style.display = 'block';
+            else finishBtn.style.display = 'none';
 
-            // Cek antrian render
+            // Update Highlight Thumbnail
+            updateActiveThumbnail();
+            // Update List Catatan
+            renderNotes();
+
             if (pageNumPending !== null) {
                 renderPage(pageNumPending);
                 pageNumPending = null;
@@ -159,44 +128,38 @@ function queueRenderPage(num) {
     else renderPage(num);
 }
 
-function checkFinishButton() {
-    const btn = document.getElementById('finishBtn');
-    if(btn) btn.style.display = (pageNum === pdfDoc.numPages) ? 'block' : 'none';
-}
+// --- 5. SIDEBAR: THUMBNAILS ---
 
-// --- THUMBNAIL GENERATOR ---
 function generateThumbnails(pdf) {
-    // Generate untuk Sidebar Desktop
     const list = document.getElementById('pageNavList');
-    if(!list) return;
-    
-    list.innerHTML = ''; 
+    list.innerHTML = '';
 
-    for(let i=1; i<=pdf.numPages; i++) {
-        const div = document.createElement('div');
-        div.className = 'thumb-item';
-        div.id = `thumb-${i}`;
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const item = document.createElement('div');
+        item.className = 'thumb-item';
+        item.id = `thumb-${i}`;
         
-        // Canvas Thumbnail Kecil
+        // Canvas Kecil
         const c = document.createElement('canvas');
-        // Label Nomor
         const label = document.createElement('div');
-        label.className = 'thumb-label';
         label.innerText = `Hal ${i}`;
+        label.style.fontSize = '0.8rem';
+        label.style.color = '#ccc';
+        label.style.marginTop = '5px';
 
-        div.appendChild(c);
-        div.appendChild(label);
+        item.appendChild(c);
+        item.appendChild(label);
         
-        div.onclick = () => {
+        item.onclick = () => {
             pageNum = i;
             queueRenderPage(pageNum);
         };
 
-        list.appendChild(div);
+        list.appendChild(item);
 
-        // Render Async (Low Quality biar ringan)
+        // Render Async (Skala Kecil)
         pdf.getPage(i).then(page => {
-            const vp = page.getViewport({ scale: 0.2 });
+            const vp = page.getViewport({ scale: 0.15 });
             c.height = vp.height;
             c.width = vp.width;
             page.render({ canvasContext: c.getContext('2d'), viewport: vp });
@@ -204,399 +167,196 @@ function generateThumbnails(pdf) {
     }
 }
 
-function updateActiveThumb() {
+function updateActiveThumbnail() {
+    // Hapus kelas active dari semua thumb
     document.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('active'));
+    // Tambah ke yang aktif
     const active = document.getElementById(`thumb-${pageNum}`);
-    if(active) {
+    if (active) {
         active.classList.add('active');
-        active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
 
-// --- NAVIGATION EVENTS ---
-function setupNavEvents() {
-    const prev = document.getElementById('prevBtn');
-    const next = document.getElementById('nextBtn');
-    const input = document.getElementById('pageInput');
-    const zIn = document.getElementById('zoomIn');
-    const zOut = document.getElementById('zoomOut');
+// --- 6. NAVIGATION & ZOOM ---
 
-    if(prev) prev.onclick = () => { if(pageNum > 1) { pageNum--; queueRenderPage(pageNum); }};
-    if(next) next.onclick = () => { if(pageNum < pdfDoc.numPages) { pageNum++; queueRenderPage(pageNum); }};
-    
-    if(input) input.onchange = (e) => {
+function setupNavigation() {
+    document.getElementById('prevBtn').onclick = () => {
+        if (pageNum <= 1) return;
+        pageNum--;
+        queueRenderPage(pageNum);
+    };
+
+    document.getElementById('nextBtn').onclick = () => {
+        if (pageNum >= pdfDoc.numPages) return;
+        pageNum++;
+        queueRenderPage(pageNum);
+    };
+
+    document.getElementById('pageInput').onchange = (e) => {
         const val = parseInt(e.target.value);
-        if(val >= 1 && val <= pdfDoc.numPages) { pageNum = val; queueRenderPage(pageNum); }
-    };
-
-    if(zIn) zIn.onclick = () => { scale += 0.2; queueRenderPage(pageNum); };
-    if(zOut) zOut.onclick = () => { if(scale > 0.4) scale -= 0.2; queueRenderPage(pageNum); };
-}
-
-// --- TOOLS SETUP (DESKTOP & MOBILE) ---
-function setupToolEvents() {
-    // Fungsi Central untuk Ganti Tool
-    window.setActiveTool = function(tool) {
-        currentTool = tool;
-        
-        // Reset Visual Semua Tombol (Desktop & Mobile)
-        const allBtnIds = ['highlightBtn', 'eraserBtn', 'moveBtn', 'mHighlight', 'mEraser', 'mMove'];
-        allBtnIds.forEach(id => {
-            const btn = document.getElementById(id);
-            if(btn) btn.classList.remove('active');
-        });
-
-        // Set Visual Tombol Aktif & Cursor Canvas
-        if (tool === 'highlight') {
-            ['highlightBtn', 'mHighlight'].forEach(id => {
-                const btn = document.getElementById(id);
-                if(btn) btn.classList.add('active');
-            });
-            highlightCanvas.style.cursor = 'crosshair';
-            highlightCanvas.style.pointerEvents = 'auto'; // Aktifkan input mouse/touch
-        } 
-        else if (tool === 'eraser') {
-            ['eraserBtn', 'mEraser'].forEach(id => {
-                const btn = document.getElementById(id);
-                if(btn) btn.classList.add('active');
-            });
-            highlightCanvas.style.cursor = 'cell';
-            highlightCanvas.style.pointerEvents = 'auto';
-        } 
-        else if (tool === 'move') {
-            ['moveBtn', 'mMove'].forEach(id => {
-                const btn = document.getElementById(id);
-                if(btn) btn.classList.add('active');
-            });
-            highlightCanvas.style.cursor = 'grab';
-            // PENTING: Pass through event agar bisa swipe/scroll di mobile
-            highlightCanvas.style.pointerEvents = 'none'; 
+        if (val >= 1 && val <= pdfDoc.numPages) {
+            pageNum = val;
+            queueRenderPage(pageNum);
         }
     };
 
-    // Binding Tombol Desktop
-    bindTool('highlightBtn', 'highlight');
-    bindTool('eraserBtn', 'eraser');
-    bindTool('moveBtn', 'move');
-    
-    // Binding Tombol Mobile
-    bindTool('mHighlight', 'highlight');
-    bindTool('mEraser', 'eraser');
-    bindTool('mMove', 'move');
+    document.getElementById('zoomIn').onclick = () => {
+        scale += 0.2;
+        queueRenderPage(pageNum);
+    };
 
-    // Undo & Clear
-    const undoBtn = document.getElementById('undoBtn');
-    if(undoBtn) undoBtn.onclick = undo;
-    
-    const clearBtn = document.getElementById('clearPageBtn');
-    if(clearBtn) clearBtn.onclick = clearAnnotations;
-}
-
-function bindTool(id, toolName) {
-    const btn = document.getElementById(id);
-    if(btn) btn.onclick = () => {
-        setActiveTool(toolName);
-        // Jika di mobile, tutup bottom sheet setelah pilih alat
-        const sheet = document.getElementById('mobileBottomSheet');
-        const bg = document.getElementById('backdrop');
-        if(sheet && sheet.classList.contains('active')) {
-            sheet.classList.remove('active');
-            if(bg) bg.classList.remove('active');
+    document.getElementById('zoomOut').onclick = () => {
+        if (scale > 0.4) {
+            scale -= 0.2;
+            queueRenderPage(pageNum);
         }
     };
 }
 
-// --- DRAWING LOGIC (ANNOTATION) ---
-function setupDrawingEvents() {
+// --- 7. TOOLS & DRAWING (DESKTOP MOUSE ONLY) ---
+
+function setupTools() {
+    const tools = ['highlightBtn', 'eraserBtn', 'moveBtn'];
     
-    // Helper: Dapatkan Koordinat Presisi
-    function getPos(e) {
+    tools.forEach(id => {
+        document.getElementById(id).onclick = () => {
+            // Reset active class
+            tools.forEach(t => document.getElementById(t).classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            // Set Current Tool
+            if (id === 'highlightBtn') {
+                currentTool = 'highlight';
+                highlightCanvas.style.pointerEvents = 'auto'; // Aktifkan canvas atas
+                highlightCanvas.style.cursor = 'crosshair';
+            } else if (id === 'eraserBtn') {
+                currentTool = 'eraser';
+                highlightCanvas.style.pointerEvents = 'auto';
+                highlightCanvas.style.cursor = 'cell';
+            } else {
+                currentTool = 'move';
+                highlightCanvas.style.pointerEvents = 'none'; // Matikan canvas atas (biar bisa seleksi teks)
+                highlightCanvas.style.cursor = 'default';
+            }
+        };
+    });
+}
+
+function setupDrawing() {
+    // Fungsi untuk mendapatkan posisi mouse relatif terhadap canvas
+    function getMousePos(evt) {
         const rect = highlightCanvas.getBoundingClientRect();
-        // Support Mouse & Touch
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        
         return {
-            x: (clientX - rect.left) * (highlightCanvas.width / rect.width),
-            y: (clientY - rect.top) * (highlightCanvas.height / rect.height)
+            x: (evt.clientX - rect.left) * (highlightCanvas.width / rect.width),
+            y: (evt.clientY - rect.top) * (highlightCanvas.height / rect.height)
         };
     }
 
-    const startDraw = (e) => {
-        if(currentTool === 'move') return;
-        if(e.type === 'touchstart') e.preventDefault(); // Cegah scroll browser
-        
+    highlightCanvas.addEventListener('mousedown', (e) => {
+        if (currentTool === 'move') return;
         isDrawing = true;
-        const {x, y} = getPos(e);
+        const pos = getMousePos(e);
         
-        saveState(); // Simpan untuk Undo
-        
-        if(!annotationData[pageNum]) annotationData[pageNum] = [];
-        
+        // Buat path baru
+        if (!annotationData[pageNum]) annotationData[pageNum] = [];
         annotationData[pageNum].push({
             tool: currentTool,
-            points: [{x, y}],
-            color: currentTool === 'highlight' ? 'rgba(255, 235, 59, 0.4)' : 'rgba(255,255,255,1)',
-            width: currentTool === 'highlight' ? 20 : 30
+            points: [pos],
+            color: currentTool === 'highlight' ? 'rgba(255, 235, 59, 0.4)' : null
         });
-    };
+    });
 
-    const drawing = (e) => {
-        if(!isDrawing || currentTool === 'move') return;
-        if(e.type === 'touchmove') e.preventDefault();
-
-        const {x, y} = getPos(e);
+    highlightCanvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing || currentTool === 'move') return;
+        const pos = getMousePos(e);
         const currentPath = annotationData[pageNum][annotationData[pageNum].length - 1];
-        currentPath.points.push({x, y});
-        
-        redrawAnnotations(); // Render Realtime
-    };
+        currentPath.points.push(pos);
+        redrawAnnotations();
+    });
 
-    const endDraw = () => { isDrawing = false; };
-
-    // Mouse Events
-    highlightCanvas.addEventListener('mousedown', startDraw);
-    highlightCanvas.addEventListener('mousemove', drawing);
-    highlightCanvas.addEventListener('mouseup', endDraw);
-    highlightCanvas.addEventListener('mouseout', endDraw);
+    highlightCanvas.addEventListener('mouseup', () => {
+        isDrawing = false;
+    });
     
-    // Touch Events
-    highlightCanvas.addEventListener('touchstart', startDraw, {passive: false});
-    highlightCanvas.addEventListener('touchmove', drawing, {passive: false});
-    highlightCanvas.addEventListener('touchend', endDraw);
+    highlightCanvas.addEventListener('mouseout', () => {
+        isDrawing = false;
+    });
 }
 
 function redrawAnnotations() {
     hCtx.clearRect(0, 0, highlightCanvas.width, highlightCanvas.height);
-    if(!annotationData[pageNum]) return;
+    if (!annotationData[pageNum]) return;
 
     annotationData[pageNum].forEach(path => {
         hCtx.beginPath();
-        hCtx.lineCap = 'round'; hCtx.lineJoin = 'round';
-        hCtx.strokeStyle = path.color;
-        hCtx.lineWidth = path.width;
+        hCtx.lineCap = 'round';
+        hCtx.lineJoin = 'round';
+        hCtx.lineWidth = 20; // Lebar stabilo
         
-        if(path.tool === 'eraser') hCtx.globalCompositeOperation = 'destination-out';
-        else hCtx.globalCompositeOperation = 'multiply';
+        if (path.tool === 'eraser') {
+            hCtx.globalCompositeOperation = 'destination-out';
+            hCtx.strokeStyle = 'rgba(0,0,0,1)';
+        } else {
+            hCtx.globalCompositeOperation = 'multiply';
+            hCtx.strokeStyle = path.color;
+        }
 
-        if(path.points.length > 0) {
+        if (path.points.length > 0) {
             hCtx.moveTo(path.points[0].x, path.points[0].y);
-            for(let i=1; i<path.points.length; i++) {
-                hCtx.lineTo(path.points[i].x, path.points[i].y);
+            for (let point of path.points) {
+                hCtx.lineTo(point.x, point.y);
             }
         }
         hCtx.stroke();
     });
-    hCtx.globalCompositeOperation = 'source-over'; // Reset
+    
+    // Reset composite
+    hCtx.globalCompositeOperation = 'source-over';
 }
 
-function saveState() {
-    undoStack.push(JSON.parse(JSON.stringify(annotationData)));
-    if(undoStack.length > 20) undoStack.shift();
-}
+// --- 8. NOTES ---
 
-function undo() {
-    if(undoStack.length > 0) {
-        annotationData = undoStack.pop();
-        redrawAnnotations();
-    }
-}
+function setupNotes() {
+    document.getElementById('addNoteBtn').onclick = () => {
+        const input = document.getElementById('noteInput');
+        const text = input.value.trim();
+        if (!text) return;
 
-function clearAnnotations() {
-    if(confirm("Hapus semua coretan di halaman ini?")) {
-        saveState();
-        annotationData[pageNum] = [];
-        redrawAnnotations();
-    }
-}
-
-// --- SWIPE GESTURE (MOBILE SLIDE) ---
-function setupSwipeEvents() {
-    let touchStartX = 0;
-    // Gunakan container PDF sebagai area swipe
-    const container = document.getElementById('pdfContainer'); 
-
-    if(!container) return;
-
-    container.addEventListener('touchstart', (e) => {
-        if (currentTool === 'move') touchStartX = e.changedTouches[0].screenX;
-    }, {passive: false});
-
-    container.addEventListener('touchend', (e) => {
-        if (currentTool === 'move') {
-            const touchEndX = e.changedTouches[0].screenX;
-            // Ambang batas geser 50px
-            if (touchEndX < touchStartX - 50 && pageNum < pdfDoc.numPages) {
-                pageNum++; queueRenderPage(pageNum);
-            }
-            if (touchEndX > touchStartX + 50 && pageNum > 1) {
-                pageNum--; queueRenderPage(pageNum);
-            }
-        }
-    }, {passive: false});
-}
-
-// --- MOBILE UI (BOTTOM SHEET) ---
-function setupMobileUI() {
-    const sheet = document.getElementById('mobileBottomSheet');
-    const backdrop = document.getElementById('backdrop');
-    const content = document.getElementById('mobilePanelContent');
-    const menuBtn = document.getElementById('mobileMenuBtn');
-
-    if(!sheet || !menuBtn) return;
-
-    // Buka Menu
-    menuBtn.onclick = () => {
-        sheet.classList.add('active');
-        if(backdrop) backdrop.classList.add('active');
-        // Default tampilkan tools
-        showMobileContent('tools'); 
-    };
-
-    // Tutup Menu (klik backdrop)
-    if(backdrop) backdrop.onclick = () => {
-        sheet.classList.remove('active');
-        backdrop.classList.remove('active');
-    };
-
-    // Handler Tombol Navigasi di Bottom Sheet
-    const mThumbBtn = document.getElementById('mThumb');
-    const mNoteBtn = document.getElementById('mNote');
-
-    if(mThumbBtn) mThumbBtn.onclick = () => showMobileContent('thumbs');
-    if(mNoteBtn) mNoteBtn.onclick = () => showMobileContent('notes');
-}
-
-function showMobileContent(type) {
-    const content = document.getElementById('mobilePanelContent');
-    if(!content) return;
-    content.innerHTML = ''; // Reset isi panel
-
-    if (type === 'tools') {
-        content.innerHTML = '<p style="text-align:center; color:#888; margin-top:10px;">Pilih alat di atas untuk mulai menandai.</p>';
-    } 
-    else if (type === 'thumbs') {
-        // Generate List Halaman Mobile
-        for(let i=1; i<=pdfDoc.numPages; i++) {
-            const div = document.createElement('div');
-            // Gunakan style inline atau class yang sudah ada di read-mobile.css
-            div.className = 'thumb-item'; 
-            div.innerText = `Halaman ${i}`;
-            div.style.padding = "10px";
-            div.style.background = "#444";
-            div.style.marginBottom = "5px";
-            div.style.borderRadius = "5px";
-            div.style.textAlign = "center";
-            
-            div.onclick = () => { 
-                pageNum = i; queueRenderPage(i); 
-                // Tutup menu
-                document.getElementById('mobileBottomSheet').classList.remove('active');
-                document.getElementById('backdrop').classList.remove('active');
-            };
-            content.appendChild(div);
-        }
-    } 
-    else if (type === 'notes') {
-        // Tampilkan Input & List Catatan
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = `
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input id="mobNoteIn" style="flex:1; padding:8px; border-radius:5px; border:none;" placeholder="Tulis...">
-                <button id="mobNoteBtn" style="padding:8px 15px; background:#10b981; border:none; border-radius:5px; color:white;">Add</button>
-            </div>
-            <div id="mobNoteList"></div>
-        `;
-        content.appendChild(wrapper);
+        if (!notesData[pageNum]) notesData[pageNum] = [];
+        notesData[pageNum].push(text);
         
-        // Bind event add note mobile
-        document.getElementById('mobNoteBtn').onclick = () => {
-            const val = document.getElementById('mobNoteIn').value;
-            if(val) saveNote(val);
-            renderMobileNotesList(); // Refresh list lokal
-        };
-        renderMobileNotesList();
-    }
-}
-
-// --- NOTES & RATING ---
-function setupNotesEvents() {
-    const addBtn = document.getElementById('addNoteBtn');
-    if(addBtn) addBtn.onclick = () => {
-        const val = document.getElementById('noteInput').value.trim();
-        if(val) {
-            saveNote(val);
-            document.getElementById('noteInput').value = '';
-        }
+        input.value = '';
+        renderNotes();
     };
-}
-
-function saveNote(text) {
-    if(!notesData[pageNum]) notesData[pageNum] = [];
-    notesData[pageNum].push({text: text, date: new Date().toLocaleTimeString()});
-    renderNotes(); // Refresh desktop list
 }
 
 function renderNotes() {
-    // Render untuk Sidebar Desktop
     const list = document.getElementById('notesList');
-    if(list) {
-        list.innerHTML = '';
-        const notes = notesData[pageNum] || [];
-        notes.forEach((n, i) => {
-            const div = document.createElement('div');
-            div.className = 'note-item';
-            div.innerHTML = `
-                <div>${n.text}</div>
-                <span class="note-date" style="font-size:0.7rem; color:#888;">${n.date}</span>
-                <i class="fas fa-trash del-note" style="float:right; cursor:pointer;" onclick="deleteNote(${i})"></i>
-            `;
-            list.appendChild(div);
-        });
+    list.innerHTML = '';
+    
+    const notes = notesData[pageNum] || [];
+    
+    if (notes.length === 0) {
+        list.innerHTML = '<div style="color:#777; text-align:center; padding:10px;">Belum ada catatan.</div>';
+        return;
     }
+
+    notes.forEach((text, index) => {
+        const div = document.createElement('div');
+        div.className = 'note-item';
+        div.innerHTML = `
+            <div>${text}</div>
+            <i class="fas fa-trash del-note" onclick="deleteNote(${index})"></i>
+        `;
+        list.appendChild(div);
+    });
 }
 
-function renderMobileNotesList() {
-    // Render khusus untuk panel mobile
-    const list = document.getElementById('mobNoteList');
-    if(list) {
-        list.innerHTML = '';
-        const notes = notesData[pageNum] || [];
-        notes.forEach(n => {
-            list.innerHTML += `<div style="background:#444; padding:8px; margin-bottom:5px; border-radius:5px;">${n.text}</div>`;
-        });
-    }
-}
-
-window.deleteNote = (i) => {
-    if(confirm('Hapus catatan?')) {
-        notesData[pageNum].splice(i, 1);
+// Fungsi Global untuk hapus note (biar bisa dipanggil dari onclick HTML)
+window.deleteNote = function(index) {
+    if (confirm("Hapus catatan ini?")) {
+        notesData[pageNum].splice(index, 1);
         renderNotes();
     }
 };
-
-function setupRatingEvents() {
-    const modal = document.getElementById('ratingModal');
-    const finishBtn = document.getElementById('finishBtn');
-    const closeBtn = document.getElementById('closeModalBtn');
-    const submitBtn = document.getElementById('submitRatingBtn');
-
-    if(finishBtn) finishBtn.onclick = () => modal.classList.add('active');
-    if(closeBtn) closeBtn.onclick = () => modal.classList.remove('active');
-    
-    if(submitBtn) submitBtn.onclick = () => {
-        alert("Terima kasih! Ulasan terkirim.");
-        window.location.href = 'index.html';
-    };
-    
-    // Star Widget Logic
-    document.querySelectorAll('.stars i').forEach(star => {
-        star.onclick = () => {
-            const val = star.getAttribute('data-val');
-            document.querySelectorAll('.stars i').forEach(s => {
-                if(s.getAttribute('data-val') <= val) s.classList.add('active');
-                else s.classList.remove('active');
-            });
-        };
-    });
-}

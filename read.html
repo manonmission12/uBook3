@@ -2,14 +2,20 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>uBook Reader</title>
     
+    <script>
+        if (window.innerWidth <= 768) {
+            // Jaga parameter URL (judul/source) saat pindah
+            window.location.href = "read-mobile.html" + window.location.search;
+        }
+    </script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.min.css">
     
     <link rel="stylesheet" href="read.css">
-    <link rel="stylesheet" href="read-mobile.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
@@ -24,6 +30,7 @@
         <div class="nav-center">
             <button id="prevBtn" class="nav-btn"><i class="fas fa-chevron-left"></i></button>
             <div class="page-info">
+                <span>Hal</span>
                 <input type="number" id="pageInput" value="1" min="1">
                 <span>/ <span id="pageTotal">--</span></span>
             </div>
@@ -31,41 +38,33 @@
         </div>
 
         <div class="nav-right">
-            
-            <div class="mobile-only">
-                <button id="mobileMenuBtn" class="nav-btn"><i class="fas fa-bars"></i></button>
-            </div>
-
-            <div class="desktop-only">
-                <button id="highlightBtn" class="tool-btn" title="Stabilo"><i class="fas fa-highlighter"></i></button>
-                <button id="eraserBtn" class="tool-btn" title="Hapus"><i class="fas fa-eraser"></i></button>
-                <button id="moveBtn" class="tool-btn active" title="Geser"><i class="fas fa-hand-paper"></i></button>
-                <div class="sep"></div>
-                <button id="zoomOut" class="tool-btn"><i class="fas fa-minus"></i></button>
-                <span id="zoomLevel">100%</span>
-                <button id="zoomIn" class="tool-btn"><i class="fas fa-plus"></i></button>
-            </div>
-            
-            <button id="finishBtn" class="finish-btn" style="display: none;">Selesai</button>
+            <button id="highlightBtn" class="tool-btn" title="Stabilo"><i class="fas fa-highlighter"></i></button>
+            <button id="eraserBtn" class="tool-btn" title="Hapus"><i class="fas fa-eraser"></i></button>
+            <button id="moveBtn" class="tool-btn active" title="Geser"><i class="fas fa-hand-paper"></i></button>
+            <div class="sep"></div>
+            <button id="zoomOut" class="tool-btn"><i class="fas fa-minus"></i></button>
+            <span id="zoomLevel">100%</span>
+            <button id="zoomIn" class="tool-btn"><i class="fas fa-plus"></i></button>
+            <button id="finishBtn" class="finish-btn" style="display:none;">Selesai</button>
         </div>
     </nav>
 
     <div class="main-layout">
         
-        <aside class="sidebar left-sidebar" id="leftSidebar">
-            <div class="sidebar-header">Halaman</div>
-            <div id="pageNavList" class="thumb-list"></div>
+        <aside class="sidebar left">
+            <div class="sidebar-header">Daftar Halaman</div>
+            <div id="thumbnailContainer" class="thumbnail-list"></div>
         </aside>
 
-        <main class="pdf-area" id="pdfContainer">
-            <div class="pdf-wrapper" id="pdfWrapper">
+        <main class="content-area" id="pdfContainer">
+            <div class="pdf-wrapper">
                 <canvas id="the-canvas"></canvas>
                 <div id="text-layer" class="textLayer"></div>
                 <canvas id="highlight-canvas" class="highlight-layer"></canvas>
             </div>
         </main>
 
-        <aside class="sidebar right-sidebar" id="rightSidebar">
+        <aside class="sidebar right">
             <div class="sidebar-header">Catatan</div>
             <div class="notes-wrapper">
                 <div id="notesList" class="notes-list"></div>
@@ -78,35 +77,8 @@
 
     </div>
 
-    <div id="mobileBottomSheet" class="bottom-sheet mobile-only">
-        <div class="sheet-handle"></div>
-        <div class="sheet-tools">
-            <button id="mMove" class="m-tool active"><i class="fas fa-hand-paper"></i> Geser</button>
-            <button id="mHighlight" class="m-tool"><i class="fas fa-highlighter"></i> Stabilo</button>
-            <button id="mEraser" class="m-tool"><i class="fas fa-eraser"></i> Hapus</button>
-            <button id="mThumb" class="m-tool"><i class="fas fa-th-large"></i> Hal</button>
-            <button id="mNote" class="m-tool"><i class="fas fa-sticky-note"></i> Note</button>
-        </div>
-        <div id="mobilePanelContent" class="sheet-content">
-            </div>
-    </div>
-
-    <div id="backdrop" class="backdrop"></div>
-    
     <div id="loadingOverlay" class="loading-overlay active">
         <div class="spinner"></div>
-    </div>
-
-    <div id="ratingModal" class="modal-overlay">
-        <div class="modal-card">
-            <h2>Selesai!</h2>
-            <div class="stars" id="starWidget">
-                <i class="fas fa-star" data-val="1"></i><i class="fas fa-star" data-val="2"></i>
-                <i class="fas fa-star" data-val="3"></i><i class="fas fa-star" data-val="4"></i>
-                <i class="fas fa-star" data-val="5"></i>
-            </div>
-            <button id="closeModalBtn" style="margin-top:10px;">Tutup</button>
-        </div>
     </div>
 
     <script src="read-script.js"></script>
