@@ -14,26 +14,29 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
-    
+
     <nav class="reader-nav">
         <div class="nav-left">
-            <a href="index.html" class="nav-btn back-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="index.html" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
             <h3 id="bookTitleDisplay">Memuat...</h3>
         </div>
         
         <div class="nav-center">
             <button id="prevBtn" class="nav-btn"><i class="fas fa-chevron-left"></i></button>
-            <span id="pageInfo">Halaman <input type="number" id="pageInput" value="1" min="1"> / <span id="pageTotal">--</span></span>
+            <div class="page-info">
+                <input type="number" id="pageInput" value="1" min="1">
+                <span>/ <span id="pageTotal">--</span></span>
+            </div>
             <button id="nextBtn" class="nav-btn"><i class="fas fa-chevron-right"></i></button>
         </div>
 
         <div class="nav-right">
-            <div class="mobile-toggles">
-                <button id="mobilePageToggle" class="tool-btn"><i class="fas fa-list"></i></button>
-                <button id="mobileNoteToggle" class="tool-btn"><i class="fas fa-pen-square"></i></button>
+            
+            <div class="mobile-only">
+                <button id="mobileMenuBtn" class="nav-btn"><i class="fas fa-bars"></i></button>
             </div>
 
-            <div class="desktop-tools">
+            <div class="desktop-only">
                 <button id="highlightBtn" class="tool-btn" title="Stabilo"><i class="fas fa-highlighter"></i></button>
                 <button id="eraserBtn" class="tool-btn" title="Hapus"><i class="fas fa-eraser"></i></button>
                 <button id="moveBtn" class="tool-btn active" title="Geser"><i class="fas fa-hand-paper"></i></button>
@@ -49,15 +52,12 @@
 
     <div class="main-layout">
         
-        <aside class="sidebar left-sidebar" id="pageSidebar">
-            <div class="sidebar-header">
-                <span>Daftar Halaman</span>
-                <button class="close-sidebar mobile-only" onclick="closeAllSidebars()">&times;</button>
-            </div>
-            <div id="pageNavList" class="thumbnail-list"></div>
+        <aside class="sidebar left-sidebar" id="leftSidebar">
+            <div class="sidebar-header">Halaman</div>
+            <div id="pageNavList" class="thumb-list"></div>
         </aside>
 
-        <main class="content-area" id="pdfContainer">
+        <main class="pdf-area" id="pdfContainer">
             <div class="pdf-wrapper" id="pdfWrapper">
                 <canvas id="the-canvas"></canvas>
                 <div id="text-layer" class="textLayer"></div>
@@ -65,14 +65,11 @@
             </div>
         </main>
 
-        <aside class="sidebar right-sidebar" id="notesSidebar">
-            <div class="sidebar-header">
-                <span>Catatan</span>
-                <button class="close-sidebar mobile-only" onclick="closeAllSidebars()">&times;</button>
-            </div>
-            <div class="notes-content">
+        <aside class="sidebar right-sidebar" id="rightSidebar">
+            <div class="sidebar-header">Catatan</div>
+            <div class="notes-wrapper">
                 <div id="notesList" class="notes-list"></div>
-                <div class="notes-input-box">
+                <div class="notes-input">
                     <textarea id="noteInput" placeholder="Tulis catatan..."></textarea>
                     <button id="addNoteBtn"><i class="fas fa-paper-plane"></i></button>
                 </div>
@@ -81,7 +78,20 @@
 
     </div>
 
-    <div id="sidebarBackdrop" class="backdrop" onclick="closeAllSidebars()"></div>
+    <div id="mobileBottomSheet" class="bottom-sheet mobile-only">
+        <div class="sheet-handle"></div>
+        <div class="sheet-tools">
+            <button id="mMove" class="m-tool active"><i class="fas fa-hand-paper"></i> Geser</button>
+            <button id="mHighlight" class="m-tool"><i class="fas fa-highlighter"></i> Stabilo</button>
+            <button id="mEraser" class="m-tool"><i class="fas fa-eraser"></i> Hapus</button>
+            <button id="mThumb" class="m-tool"><i class="fas fa-th-large"></i> Hal</button>
+            <button id="mNote" class="m-tool"><i class="fas fa-sticky-note"></i> Note</button>
+        </div>
+        <div id="mobilePanelContent" class="sheet-content">
+            </div>
+    </div>
+
+    <div id="backdrop" class="backdrop"></div>
     
     <div id="loadingOverlay" class="loading-overlay active">
         <div class="spinner"></div>
@@ -89,16 +99,13 @@
 
     <div id="ratingModal" class="modal-overlay">
         <div class="modal-card">
-            <h2>Selesai Membaca!</h2>
+            <h2>Selesai!</h2>
             <div class="stars" id="starWidget">
                 <i class="fas fa-star" data-val="1"></i><i class="fas fa-star" data-val="2"></i>
                 <i class="fas fa-star" data-val="3"></i><i class="fas fa-star" data-val="4"></i>
                 <i class="fas fa-star" data-val="5"></i>
             </div>
-            <div class="modal-actions">
-                <button id="closeModalBtn">Batal</button>
-                <button id="submitRatingBtn" class="primary">Simpan</button>
-            </div>
+            <button id="closeModalBtn" style="margin-top:10px;">Tutup</button>
         </div>
     </div>
 
