@@ -18,7 +18,7 @@ body {
 /* AREA BACA */
 #readerArea { 
     margin-top: 55px; height: calc(100vh - 55px); width: 100%; 
-    overflow: auto; /* Scroll aktif */
+    overflow: auto; 
     background: #121212; position: relative; 
     display: flex; justify-content: center; align-items: flex-start;
     -webkit-overflow-scrolling: touch;
@@ -34,31 +34,28 @@ body {
 
 .fade-out { opacity: 0.1; }
 
-/* CANVAS HD FIX */
+/* CANVAS (Dipaksa fit screen oleh CSS) */
 canvas { 
     display: block; 
     width: 100% !important; height: auto !important;
 }
 
-/* --- LAYER TEKS (NATIVE SELECTION) --- */
+/* LAYER TEKS (Seleksi) */
 .textLayer {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     overflow: hidden; 
     opacity: 1; 
     line-height: 1.0;
     mix-blend-mode: multiply;
+    /* Lebar layer teks ikut container (100%), isinya nanti diatur JS agar pas */
     width: 100% !important; height: 100% !important;
-    z-index: 2; /* Di atas canvas gambar */
+    z-index: 2; 
     
-    /* IZINKAN SELEKSI TEKS SECARA NATIVE */
+    /* IZINKAN SELEKSI TEKS */
     user-select: text; 
     -webkit-user-select: text; 
-    
-    /* Default Pointer Events (Diatur JS nanti) */
-    pointer-events: none; 
 }
 
-/* Teks Transparan di atas Gambar */
 .textLayer > span {
     color: transparent;
     position: absolute;
@@ -67,14 +64,14 @@ canvas {
     transform-origin: 0% 0%;
 }
 
-/* Warna Blok Biru */
+/* Warna Blok */
 ::selection { background: rgba(0, 0, 255, 0.3); }
 
 /* LAYER STABILO */
 #highlight-canvas { 
     position: absolute; top: 0; left: 0; 
     width: 100% !important; height: 100% !important; 
-    z-index: 3; /* Paling atas */
+    z-index: 3; 
     pointer-events: none; 
 }
 
