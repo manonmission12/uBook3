@@ -16,19 +16,26 @@ let textLayerDiv = document.getElementById('text-layer');
 let currentTool = 'move', isDrawing = false, isAnimating = false;
 let annotationData = {}, notesData = {}, undoStack = [], redoStack = [];
 
+// Helper: Ambil Pixel Ratio (Untuk HD)
 const getDPR = () => window.devicePixelRatio || 1;
 
 // --- 3. INIT ---
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const source = params.get('source');
-    if(source) loadBook(decodeURIComponent(source));
-    else { alert("Buku tidak ditemukan."); window.location.href = 'index.html'; }
+    
+    if(source) {
+        loadBook(decodeURIComponent(source));
+    } else {
+        alert("Buku tidak ditemukan.");
+        window.location.href = 'index.html';
+    }
     
     setupUI();
     setupSwipe();
     setupDrawing();
     
+    // Auto Resize saat HP diputar
     window.addEventListener('resize', () => {
         if(pdfDoc) {
             clearTimeout(window.resizeTimer);
@@ -44,20 +51,23 @@ function loadBook(url) {
     pdfjsLib.getDocument(url).promise.then(pdf => {
         pdfDoc = pdf;
         document.getElementById('totalPage').innerText = pdf.numPages;
+        console.log("PDF Loaded. Pages:", pdf.numPages);
         
         pdf.getPage(1).then(page => {
             const viewport = page.getViewport({scale: 1.0});
             const screenWidth = window.innerWidth || 360; 
             
-            // Hitung Scale Pas Layar
+            // Hitung Scale "Logical" agar pas di layar (kurangi margin 20px)
             scale = (screenWidth - 20) / viewport.width;
-            if (scale <= 0) scale = 0.6; 
+            if (scale <= 0) scale = 0.6; // Safety fallback
             
+            // Render Halaman
             renderPage(pageNum).then(() => {
                 document.getElementById('loading').classList.remove('active');
                 setTimeout(() => generateThumbnails(pdf), 800);
             });
         });
+
     }).catch(err => {
         console.error(err);
         alert("Gagal memuat buku.");
@@ -65,38 +75,49 @@ function loadBook(url) {
     });
 }
 
-// --- 5. RENDER PAGE (HD + SELECTABLE TEXT) ---
+// --- 5. RENDER PAGE (HD FIX) ---
 function renderPage(num) {
     return new Promise(resolve => {
         if(!pdfDoc) return;
 
         pdfDoc.getPage(num).then(page => {
             const dpr = getDPR();
-            // Viewport HD
+            
+            // 1. VIEWPORT HD (Untuk Canvas Gambar & Coretan)
+            // Ini dikali DPR (misal 2x atau 3x) agar gambar TAJAM
             const viewportHD = page.getViewport({scale: scale * dpr});
             
-            // Set Atribut Ukuran Canvas
+            // 2. VIEWPORT LOGIS (Untuk Text Layer & CSS)
+            // Ini ukuran ASLI layar, agar posisi teks PAS (tidak melayang)
+            const viewportLogical = page.getViewport({scale: scale});
+            
+            // Set Ukuran Canvas (Fisik - HD)
             canvas.width = viewportHD.width;
             canvas.height = viewportHD.height;
+            
             hCanvas.width = viewportHD.width;
             hCanvas.height = viewportHD.height;
             
-            // Set Ukuran Text Layer
-            textLayerDiv.style.width = `${viewportHD.width}px`;
-            textLayerDiv.style.height = `${viewportHD.height}px`;
+            // Set Ukuran Container Text Layer (Sesuai Logis/Layar)
+            // Catatan: CSS 'width: 100% !important' akan menjaga ini tetap responsif
+            textLayerDiv.style.width = `${viewportLogical.width}px`;
+            textLayerDiv.style.height = `${viewportLogical.height}px`;
 
-            // Render Gambar
-            const renderCtx = { canvasContext: ctx, viewport: viewportHD };
+            // Render PDF Gambar (Pakai viewportHD)
+            const renderCtx = { 
+                canvasContext: ctx, 
+                viewport: viewportHD 
+            };
             
             page.render(renderCtx).promise.then(() => {
-                // Render Teks (Wajib untuk seleksi)
                 return page.getTextContent();
             }).then(textContent => {
+                // RENDER TEKS (Pakai viewportLogical)
                 textLayerDiv.innerHTML = '';
                 pdfjsLib.renderTextLayer({
                     textContent: textContent,
                     container: textLayerDiv,
-                    viewport: viewportHD, // Wajib pakai viewport yang sama
+                    viewport: viewportLogical, // <--- KUNCI PERBAIKAN DI SINI
                     textDivs: []
                 });
 
@@ -104,9 +125,7 @@ function renderPage(num) {
                 document.getElementById('currPage').innerText = num;
                 renderNotes();
                 updateThumbActive();
-                
-                // Refresh Tool State (PENTING!)
-                updateToolState();
+                updateToolState(); // Refresh pointer events
                 
                 resolve();
             });
@@ -122,29 +141,33 @@ function changePage(delta) {
 
     isAnimating = true;
     const wrapper = document.getElementById('pdfWrapper');
+    
+    // Animasi Fade Out
     wrapper.classList.add('fade-out');
 
     setTimeout(() => {
         pageNum = newNum;
         renderPage(pageNum).then(() => {
+            // Animasi Fade In
             wrapper.classList.remove('fade-out');
             isAnimating = false;
         });
     }, 200);
 }
 
-// --- 7. TOOL STATE (KUNCI SELEKSI TEKS) ---
+// --- 7. TOOL STATE (SELEKSI TEKS VS GAMBAR) ---
 function updateToolState() {
-    // Mode MOVE: Izinkan seleksi teks (pointer-events: auto pada textLayer)
-    // Mode GAMBAR: Matikan teks, hidupkan canvas highlight
-    
+    // Reset
+    hCanvas.style.pointerEvents = 'none';
+    textLayerDiv.style.pointerEvents = 'none';
+
     if (currentTool === 'move') {
-        textLayerDiv.style.pointerEvents = 'auto'; // BISA BLOK TEKS
-        hCanvas.style.pointerEvents = 'none';      // Gambar tembus
-    } else {
-        textLayerDiv.style.pointerEvents = 'none'; // GAK BISA BLOK TEKS
-        hCanvas.style.pointerEvents = 'auto';      // Bisa gambar
-    }
+        // Mode Move: Izinkan blok teks
+        textLayerDiv.style.pointerEvents = 'auto'; 
+    } else if (currentTool === 'highlight' || currentTool === 'eraser') {
+        // Mode Gambar: Izinkan canvas coretan
+        hCanvas.style.pointerEvents = 'auto';
+    } 
 }
 
 function changeZoom(delta) {
@@ -174,13 +197,15 @@ function setupUI() {
 
     ['move', 'highlight', 'eraser'].forEach(t => {
         const id = 'tool' + t.charAt(0).toUpperCase() + t.slice(1);
-        document.getElementById(id).onclick = () => {
+        const el = document.getElementById(id);
+        if(!el) return;
+
+        el.onclick = () => {
             currentTool = t;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+            el.classList.add('active');
             
-            // Panggil update state
-            updateToolState();
+            updateToolState(); // Update pointer logic
             
             sheet.classList.remove('active'); bg.classList.remove('active');
         };
@@ -191,6 +216,7 @@ function setupUI() {
     document.getElementById('toolUndo').onclick = undo;
     document.getElementById('toolRedo').onclick = redo;
     document.getElementById('toolClear').onclick = () => { if(confirm('Hapus?')) { saveState(); annotationData[pageNum]=[]; redrawAnnotations(); }};
+    
     document.getElementById('mobNoteBtn').onclick = () => {
         const v = document.getElementById('mobNoteIn').value;
         if(v) { if(!notesData[pageNum]) notesData[pageNum]=[]; notesData[pageNum].push(v); document.getElementById('mobNoteIn').value=''; renderNotes(); }
@@ -202,6 +228,7 @@ function setupDrawing() {
     function getTouchPos(e) {
         const rect = hCanvas.getBoundingClientRect();
         const t = e.touches[0];
+        // Konversi koordinat sentuh ke koordinat canvas HD
         return { 
             x: (t.clientX - rect.left) * (hCanvas.width / rect.width), 
             y: (t.clientY - rect.top) * (hCanvas.height / rect.height) 
@@ -209,7 +236,7 @@ function setupDrawing() {
     }
 
     hCanvas.addEventListener('touchstart', e => {
-        if(currentTool==='move') return;
+        if(currentTool==='move') return; // Jangan gambar pas mode move
         e.preventDefault(); isDrawing=true; saveState();
         if(!annotationData[pageNum]) annotationData[pageNum]=[];
         const {x,y} = getTouchPos(e);
@@ -230,13 +257,18 @@ function setupDrawing() {
 function redrawAnnotations() {
     hCtx.clearRect(0,0,hCanvas.width, hCanvas.height);
     if(!annotationData[pageNum]) return;
+    
     const dpr = getDPR();
+    
     annotationData[pageNum].forEach(p => {
         hCtx.beginPath(); hCtx.lineCap='round'; hCtx.lineJoin='round';
+        // Tebal garis dikali DPR biar gak kekecilan di layar HD
         hCtx.lineWidth = (p.tool==='eraser' ? 30 : 20) * dpr;
+        
         hCtx.strokeStyle = p.tool==='highlight' ? p.color : 'rgba(0,0,0,1)';
         hCtx.globalCompositeOperation = p.tool==='eraser' ? 'destination-out' : 'multiply';
-        if(p.points.length>0) {
+        
+        if(p.points.length > 0) {
             hCtx.moveTo(p.points[0].x, p.points[0].y);
             for(let pt of p.points) hCtx.lineTo(pt.x, pt.y);
         }
@@ -245,7 +277,7 @@ function redrawAnnotations() {
     hCtx.globalCompositeOperation='source-over';
 }
 
-// --- 10. SWIPE GESTURE (PENTING: Jangan Block Seleksi Teks) ---
+// --- 10. SWIPE ---
 function setupSwipe() {
     let ts = 0;
     let startTime = 0;
@@ -256,18 +288,16 @@ function setupSwipe() {
             ts = e.changedTouches[0].screenX; 
             startTime = new Date().getTime();
         }
-    }, {passive: false}); // Passive: true biar native selection jalan? Nggak, harus false buat logic swipe custom
+    }, {passive: false});
     
     area.addEventListener('touchend', e => {
         if(currentTool==='move') {
             const te = e.changedTouches[0].screenX;
             const diff = te - ts;
-            const endTime = new Date().getTime();
-            const timeDiff = endTime - startTime;
+            const timeDiff = new Date().getTime() - startTime;
 
-            // Logika Pintar:
-            // Jika gesernya cepat (< 300ms) dan jauh (> 50px) -> SWIPE HALAMAN
-            // Jika lama (> 300ms) -> ANGGAP SELEKSI TEKS (Jangan ganti halaman)
+            // Logic: Swipe cepat (<300ms) dan jauh (>50px) = Ganti Halaman
+            // Kalau tahan lama = Seleksi Teks (Jangan ganti halaman)
             if(Math.abs(diff) > 50 && timeDiff < 300) {
                 if(diff < 0) changePage(1); 
                 else changePage(-1);
