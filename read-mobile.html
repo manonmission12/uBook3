@@ -3,22 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Reader</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Mobile Reader Native</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.min.css">
     <link rel="stylesheet" href="read-mobile.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
+
     <nav class="mobile-nav">
         <a href="index.html" class="nav-icon"><i class="fas fa-arrow-left"></i></a>
-        <div class="page-indicator"><span id="currPage">1</span> / <span id="totalPage">--</span></div>
+        <div class="page-indicator">
+            <span id="currPage">1</span> / <span id="totalPage">--</span>
+        </div>
         <button id="btnMenu" class="nav-icon"><i class="fas fa-bars"></i></button>
     </nav>
 
     <main id="readerArea">
         <div id="pdfWrapper">
             <canvas id="the-canvas"></canvas>
+            
+            <div id="text-layer" class="textLayer"></div>
+            
             <canvas id="highlight-canvas"></canvas>
         </div>
     </main>
@@ -30,20 +38,29 @@
             <button class="tab-btn" data-target="pages">Hal</button>
             <button class="tab-btn" data-target="notes">Note</button>
         </div>
+        
         <div class="sheet-body">
             <div id="panel-tools" class="tab-panel active">
                 <div class="tools-grid">
-                    <button class="tool-btn active" id="toolMove"><i class="fas fa-hand-paper"></i> Geser</button>
+                    <button class="tool-btn active" id="toolMove"><i class="fas fa-hand-pointer"></i> Geser/Teks</button>
+                    
                     <button class="tool-btn" id="toolHighlight"><i class="fas fa-highlighter"></i> Stabilo</button>
                     <button class="tool-btn" id="toolEraser"><i class="fas fa-eraser"></i> Hapus</button>
+                    
+                    <button class="tool-btn" id="toolZoomIn"><i class="fas fa-search-plus"></i> Zoom +</button>
+                    <button class="tool-btn" id="toolZoomOut"><i class="fas fa-search-minus"></i> Zoom -</button>
+                    
+                    <button class="tool-btn" id="toolUndo"><i class="fas fa-undo"></i> Undo</button>
+                    <button class="tool-btn" id="toolRedo"><i class="fas fa-redo"></i> Redo</button>
                     <button class="tool-btn warn" id="toolClear"><i class="fas fa-trash"></i> Bersih</button>
                 </div>
             </div>
+
             <div id="panel-pages" class="tab-panel"><div id="thumbGrid" class="thumb-grid"></div></div>
             <div id="panel-notes" class="tab-panel">
                 <div class="note-input-area">
-                    <input id="mobNoteIn" placeholder="Tulis catatan...">
-                    <button id="mobNoteBtn">+</button>
+                    <input id="mobNoteIn" type="text" placeholder="Catatan...">
+                    <button id="mobNoteBtn"><i class="fas fa-paper-plane"></i></button>
                 </div>
                 <div id="mobNoteList"></div>
             </div>
@@ -51,7 +68,11 @@
     </div>
 
     <div id="backdrop"></div>
-    <div id="loading" class="active"><div class="spinner"></div></div>
-    <script src="read-mobile.js"></script>
+    <div id="loading" class="active">
+        <div class="spinner"></div>
+        <p style="color:white; margin-top:10px;">Memuat...</p>
+    </div>
+
+    <script src="read-mobile.js" defer></script>
 </body>
 </html>

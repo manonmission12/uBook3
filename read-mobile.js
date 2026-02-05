@@ -1,63 +1,165 @@
-const pdfjsLib = window['pdfjs-dist/build/pdf'];
+// --- 1. CONFIG PDF.JS ---
+var pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-let pdfDoc = null, pageNum = 1, scale = 1.0;
-let canvas = document.getElementById('the-canvas'), ctx = canvas.getContext('2d');
-let hCanvas = document.getElementById('highlight-canvas'), hCtx = hCanvas.getContext('2d');
-let currentTool = 'move', isDrawing = false, annotationData = {}, notesData = {};
+// --- 2. STATE ---
+let pdfDoc = null, 
+    pageNum = 1, 
+    scale = 1.0; 
 
+let canvas = document.getElementById('the-canvas'), 
+    ctx = canvas.getContext('2d');
+let hCanvas = document.getElementById('highlight-canvas'), 
+    hCtx = hCanvas.getContext('2d');
+let textLayerDiv = document.getElementById('text-layer');
+
+let currentTool = 'move', isDrawing = false, isAnimating = false;
+let annotationData = {}, notesData = {}, undoStack = [], redoStack = [];
+
+const getDPR = () => window.devicePixelRatio || 1;
+
+// --- 3. INIT ---
 document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const source = urlParams.get('source');
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get('source');
     if(source) loadBook(decodeURIComponent(source));
-    else window.location.href = 'index.html';
-    setupUI(); setupSwipe(); setupDrawing();
+    else { alert("Buku tidak ditemukan."); window.location.href = 'index.html'; }
+    
+    setupUI();
+    setupSwipe();
+    setupDrawing();
+    
+    window.addEventListener('resize', () => {
+        if(pdfDoc) {
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(() => { renderPage(pageNum); }, 300);
+        }
+    });
 });
 
+// --- 4. LOAD BUKU ---
 function loadBook(url) {
     document.getElementById('loading').classList.add('active');
+    
     pdfjsLib.getDocument(url).promise.then(pdf => {
         pdfDoc = pdf;
         document.getElementById('totalPage').innerText = pdf.numPages;
-        document.getElementById('loading').classList.remove('active');
-        renderPage(pageNum);
-        generateThumbnails(pdf);
-    });
-}
-
-function renderPage(num) {
-    pdfDoc.getPage(num).then(page => {
-        const viewportBase = page.getViewport({scale: 1.0});
-        scale = (window.innerWidth - 20) / viewportBase.width; // Auto Fit Width
-        const viewport = page.getViewport({scale: scale});
         
-        canvas.height = viewport.height; canvas.width = viewport.width;
-        hCanvas.height = viewport.height; hCanvas.width = viewport.width;
-
-        page.render({canvasContext: ctx, viewport}).promise.then(() => {
-            redrawAnnotations();
-            document.getElementById('currPage').innerText = num;
-            renderNotes();
+        pdf.getPage(1).then(page => {
+            const viewport = page.getViewport({scale: 1.0});
+            const screenWidth = window.innerWidth || 360; 
+            
+            // Hitung Scale Pas Layar
+            scale = (screenWidth - 20) / viewport.width;
+            if (scale <= 0) scale = 0.6; 
+            
+            renderPage(pageNum).then(() => {
+                document.getElementById('loading').classList.remove('active');
+                setTimeout(() => generateThumbnails(pdf), 800);
+            });
         });
+    }).catch(err => {
+        console.error(err);
+        alert("Gagal memuat buku.");
+        document.getElementById('loading').classList.remove('active');
     });
 }
 
-function setupSwipe() {
-    let ts = 0;
-    const area = document.getElementById('readerArea');
-    area.addEventListener('touchstart', e => { if(currentTool==='move') ts = e.changedTouches[0].screenX; }, {passive:false});
-    area.addEventListener('touchend', e => {
-        if(currentTool==='move') {
-            const te = e.changedTouches[0].screenX;
-            if(te < ts - 50 && pageNum < pdfDoc.numPages) { pageNum++; renderPage(pageNum); }
-            if(te > ts + 50 && pageNum > 1) { pageNum--; renderPage(pageNum); }
-        }
-    }, {passive:false});
+// --- 5. RENDER PAGE (HD + SELECTABLE TEXT) ---
+function renderPage(num) {
+    return new Promise(resolve => {
+        if(!pdfDoc) return;
+
+        pdfDoc.getPage(num).then(page => {
+            const dpr = getDPR();
+            // Viewport HD
+            const viewportHD = page.getViewport({scale: scale * dpr});
+            
+            // Set Atribut Ukuran Canvas
+            canvas.width = viewportHD.width;
+            canvas.height = viewportHD.height;
+            hCanvas.width = viewportHD.width;
+            hCanvas.height = viewportHD.height;
+            
+            // Set Ukuran Text Layer
+            textLayerDiv.style.width = `${viewportHD.width}px`;
+            textLayerDiv.style.height = `${viewportHD.height}px`;
+
+            // Render Gambar
+            const renderCtx = { canvasContext: ctx, viewport: viewportHD };
+            
+            page.render(renderCtx).promise.then(() => {
+                // Render Teks (Wajib untuk seleksi)
+                return page.getTextContent();
+            }).then(textContent => {
+                textLayerDiv.innerHTML = '';
+                pdfjsLib.renderTextLayer({
+                    textContent: textContent,
+                    container: textLayerDiv,
+                    viewport: viewportHD, // Wajib pakai viewport yang sama
+                    textDivs: []
+                });
+
+                redrawAnnotations(); 
+                document.getElementById('currPage').innerText = num;
+                renderNotes();
+                updateThumbActive();
+                
+                // Refresh Tool State (PENTING!)
+                updateToolState();
+                
+                resolve();
+            });
+        }).catch(err => console.error(err));
+    });
 }
 
+// --- 6. CHANGE PAGE ---
+function changePage(delta) {
+    if(isAnimating) return;
+    const newNum = pageNum + delta;
+    if (newNum < 1 || newNum > pdfDoc.numPages) return;
+
+    isAnimating = true;
+    const wrapper = document.getElementById('pdfWrapper');
+    wrapper.classList.add('fade-out');
+
+    setTimeout(() => {
+        pageNum = newNum;
+        renderPage(pageNum).then(() => {
+            wrapper.classList.remove('fade-out');
+            isAnimating = false;
+        });
+    }, 200);
+}
+
+// --- 7. TOOL STATE (KUNCI SELEKSI TEKS) ---
+function updateToolState() {
+    // Mode MOVE: Izinkan seleksi teks (pointer-events: auto pada textLayer)
+    // Mode GAMBAR: Matikan teks, hidupkan canvas highlight
+    
+    if (currentTool === 'move') {
+        textLayerDiv.style.pointerEvents = 'auto'; // BISA BLOK TEKS
+        hCanvas.style.pointerEvents = 'none';      // Gambar tembus
+    } else {
+        textLayerDiv.style.pointerEvents = 'none'; // GAK BISA BLOK TEKS
+        hCanvas.style.pointerEvents = 'auto';      // Bisa gambar
+    }
+}
+
+function changeZoom(delta) {
+    let newScale = scale + delta;
+    if(newScale < 0.2) newScale = 0.2;
+    if(newScale > 3.0) newScale = 3.0;
+    scale = newScale;
+    renderPage(pageNum);
+}
+
+// --- 8. UI HANDLERS ---
 function setupUI() {
     const sheet = document.getElementById('bottomSheet');
     const bg = document.getElementById('backdrop');
+    
     document.getElementById('btnMenu').onclick = () => { sheet.classList.add('active'); bg.classList.add('active'); };
     bg.onclick = () => { sheet.classList.remove('active'); bg.classList.remove('active'); };
 
@@ -71,78 +173,137 @@ function setupUI() {
     });
 
     ['move', 'highlight', 'eraser'].forEach(t => {
-        const btnId = 'tool' + t.charAt(0).toUpperCase() + t.slice(1);
-        document.getElementById(btnId).onclick = () => {
+        const id = 'tool' + t.charAt(0).toUpperCase() + t.slice(1);
+        document.getElementById(id).onclick = () => {
             currentTool = t;
-            hCanvas.style.pointerEvents = (t==='move') ? 'none' : 'auto';
-            sheet.classList.remove('active'); bg.classList.remove('active');
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(btnId).classList.add('active');
+            document.getElementById(id).classList.add('active');
+            
+            // Panggil update state
+            updateToolState();
+            
+            sheet.classList.remove('active'); bg.classList.remove('active');
         };
     });
-    
-    document.getElementById('toolClear').onclick = () => { if(confirm('Hapus?')) { annotationData[pageNum]=[]; redrawAnnotations(); }};
+
+    document.getElementById('toolZoomIn').onclick = () => changeZoom(0.2);
+    document.getElementById('toolZoomOut').onclick = () => changeZoom(-0.2);
+    document.getElementById('toolUndo').onclick = undo;
+    document.getElementById('toolRedo').onclick = redo;
+    document.getElementById('toolClear').onclick = () => { if(confirm('Hapus?')) { saveState(); annotationData[pageNum]=[]; redrawAnnotations(); }};
     document.getElementById('mobNoteBtn').onclick = () => {
-        const val = document.getElementById('mobNoteIn').value;
-        if(val) {
-            if(!notesData[pageNum]) notesData[pageNum]=[];
-            notesData[pageNum].push(val);
-            document.getElementById('mobNoteIn').value = '';
-            renderNotes();
-        }
+        const v = document.getElementById('mobNoteIn').value;
+        if(v) { if(!notesData[pageNum]) notesData[pageNum]=[]; notesData[pageNum].push(v); document.getElementById('mobNoteIn').value=''; renderNotes(); }
     };
 }
 
+// --- 9. DRAWING ---
 function setupDrawing() {
-    function getPos(e) {
+    function getTouchPos(e) {
         const rect = hCanvas.getBoundingClientRect();
         const t = e.touches[0];
-        return { x: (t.clientX - rect.left) * (hCanvas.width/rect.width), y: (t.clientY - rect.top) * (hCanvas.height/rect.height) };
+        return { 
+            x: (t.clientX - rect.left) * (hCanvas.width / rect.width), 
+            y: (t.clientY - rect.top) * (hCanvas.height / rect.height) 
+        };
     }
+
     hCanvas.addEventListener('touchstart', e => {
         if(currentTool==='move') return;
-        e.preventDefault(); isDrawing = true;
+        e.preventDefault(); isDrawing=true; saveState();
         if(!annotationData[pageNum]) annotationData[pageNum]=[];
-        const {x,y} = getPos(e);
-        annotationData[pageNum].push({tool: currentTool, points:[{x,y}]});
+        const {x,y} = getTouchPos(e);
+        annotationData[pageNum].push({tool:currentTool, points:[{x,y}], color:'rgba(255,235,59,0.4)'});
     }, {passive:false});
+
     hCanvas.addEventListener('touchmove', e => {
-        if(!isDrawing) return;
+        if(!isDrawing || currentTool==='move') return;
         e.preventDefault();
-        const {x,y} = getPos(e);
+        const {x,y} = getTouchPos(e);
         annotationData[pageNum][annotationData[pageNum].length-1].points.push({x,y});
         redrawAnnotations();
     }, {passive:false});
-    hCanvas.addEventListener('touchend', () => isDrawing = false);
+
+    hCanvas.addEventListener('touchend', () => isDrawing=false);
 }
 
 function redrawAnnotations() {
     hCtx.clearRect(0,0,hCanvas.width, hCanvas.height);
     if(!annotationData[pageNum]) return;
+    const dpr = getDPR();
     annotationData[pageNum].forEach(p => {
-        hCtx.beginPath(); hCtx.lineCap='round'; hCtx.lineWidth=20;
-        hCtx.strokeStyle = p.tool==='highlight'?'rgba(255,235,59,0.4)':'white';
-        hCtx.globalCompositeOperation = p.tool==='eraser'?'destination-out':'multiply';
-        hCtx.moveTo(p.points[0].x, p.points[0].y);
-        for(let pt of p.points) hCtx.lineTo(pt.x, pt.y);
+        hCtx.beginPath(); hCtx.lineCap='round'; hCtx.lineJoin='round';
+        hCtx.lineWidth = (p.tool==='eraser' ? 30 : 20) * dpr;
+        hCtx.strokeStyle = p.tool==='highlight' ? p.color : 'rgba(0,0,0,1)';
+        hCtx.globalCompositeOperation = p.tool==='eraser' ? 'destination-out' : 'multiply';
+        if(p.points.length>0) {
+            hCtx.moveTo(p.points[0].x, p.points[0].y);
+            for(let pt of p.points) hCtx.lineTo(pt.x, pt.y);
+        }
         hCtx.stroke();
     });
-    hCtx.globalCompositeOperation = 'source-over';
+    hCtx.globalCompositeOperation='source-over';
 }
 
-function generateThumbnails(pdf) {
-    const grid = document.getElementById('thumbGrid');
-    grid.innerHTML = '';
+// --- 10. SWIPE GESTURE (PENTING: Jangan Block Seleksi Teks) ---
+function setupSwipe() {
+    let ts = 0;
+    let startTime = 0;
+    const area = document.getElementById('readerArea');
+    
+    area.addEventListener('touchstart', e => { 
+        if(currentTool==='move') {
+            ts = e.changedTouches[0].screenX; 
+            startTime = new Date().getTime();
+        }
+    }, {passive: false}); // Passive: true biar native selection jalan? Nggak, harus false buat logic swipe custom
+    
+    area.addEventListener('touchend', e => {
+        if(currentTool==='move') {
+            const te = e.changedTouches[0].screenX;
+            const diff = te - ts;
+            const endTime = new Date().getTime();
+            const timeDiff = endTime - startTime;
+
+            // Logika Pintar:
+            // Jika gesernya cepat (< 300ms) dan jauh (> 50px) -> SWIPE HALAMAN
+            // Jika lama (> 300ms) -> ANGGAP SELEKSI TEKS (Jangan ganti halaman)
+            if(Math.abs(diff) > 50 && timeDiff < 300) {
+                if(diff < 0) changePage(1); 
+                else changePage(-1);
+            }
+        }
+    }, {passive: false});
+}
+
+function saveState() { undoStack.push(JSON.parse(JSON.stringify(annotationData))); redoStack=[]; }
+function undo() { if(undoStack.length>0) { redoStack.push(JSON.parse(JSON.stringify(annotationData))); annotationData=undoStack.pop(); redrawAnnotations(); } }
+function redo() { if(redoStack.length>0) { undoStack.push(JSON.parse(JSON.stringify(annotationData))); annotationData=redoStack.pop(); redrawAnnotations(); } }
+
+async function generateThumbnails(pdf) {
+    const grid = document.getElementById('thumbGrid'); grid.innerHTML = '';
     for(let i=1; i<=pdf.numPages; i++) {
-        const d = document.createElement('div'); d.innerText = `Hal ${i}`;
-        d.style = "background:white;color:black;padding:10px;text-align:center;border-radius:5px;";
+        const d = document.createElement('div'); d.className='thumb-item'; d.id=`thumb-${i}`;
+        const c = document.createElement('canvas'); d.appendChild(c); d.innerHTML+=`<div>${i}</div>`;
         d.onclick = () => { pageNum=i; renderPage(i); document.getElementById('bottomSheet').classList.remove('active'); document.getElementById('backdrop').classList.remove('active'); };
         grid.appendChild(d);
+        await new Promise(r => setTimeout(r, 50));
+        try {
+            await pdf.getPage(i).then(p => { 
+                const vp = p.getViewport({scale:0.2}); c.height=vp.height; c.width=vp.width; 
+                p.render({canvasContext:c.getContext('2d'), viewport:vp}); 
+            });
+        } catch(e) {}
     }
 }
 
+function updateThumbActive() {
+    document.querySelectorAll('.thumb-item').forEach(e => e.classList.remove('active'));
+    const a = document.getElementById(`thumb-${pageNum}`);
+    if(a) { a.classList.add('active'); a.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'}); }
+}
+
 function renderNotes() {
-    const list = document.getElementById('mobNoteList');
-    list.innerHTML = '';
+    const list = document.getElementById('mobNoteList'); list.innerHTML = '';
     if(notesData[pageNum]) notesData[pageNum].forEach(n => list.innerHTML += `<div class="note-item">${n}</div>`);
 }

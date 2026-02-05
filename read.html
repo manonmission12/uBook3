@@ -7,16 +7,13 @@
     
     <script>
         if (window.innerWidth <= 768) {
-            // Jaga parameter URL (judul/source) saat pindah
             window.location.href = "read-mobile.html" + window.location.search;
         }
     </script>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.min.css">
-    
     <link rel="stylesheet" href="read.css">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
@@ -30,7 +27,6 @@
         <div class="nav-center">
             <button id="prevBtn" class="nav-btn"><i class="fas fa-chevron-left"></i></button>
             <div class="page-info">
-                <span>Hal</span>
                 <input type="number" id="pageInput" value="1" min="1">
                 <span>/ <span id="pageTotal">--</span></span>
             </div>
@@ -38,19 +34,26 @@
         </div>
 
         <div class="nav-right">
+            <button id="moveBtn" class="tool-btn active" title="Pilih Teks / Geser"><i class="fas fa-mouse-pointer"></i></button>
             <button id="highlightBtn" class="tool-btn" title="Stabilo"><i class="fas fa-highlighter"></i></button>
             <button id="eraserBtn" class="tool-btn" title="Hapus"><i class="fas fa-eraser"></i></button>
-            <button id="moveBtn" class="tool-btn active" title="Geser"><i class="fas fa-hand-paper"></i></button>
+            
             <div class="sep"></div>
+            
+            <button id="undoBtn" class="tool-btn" title="Undo"><i class="fas fa-undo"></i></button>
+            <button id="redoBtn" class="tool-btn" title="Redo"><i class="fas fa-redo"></i></button>
+            
+            <div class="sep"></div>
+            
             <button id="zoomOut" class="tool-btn"><i class="fas fa-minus"></i></button>
             <span id="zoomLevel">100%</span>
             <button id="zoomIn" class="tool-btn"><i class="fas fa-plus"></i></button>
+            
             <button id="finishBtn" class="finish-btn" style="display:none;">Selesai</button>
         </div>
     </nav>
 
     <div class="main-layout">
-        
         <aside class="sidebar left">
             <div class="sidebar-header">Daftar Halaman</div>
             <div id="thumbnailContainer" class="thumbnail-list"></div>
@@ -74,11 +77,11 @@
                 </div>
             </div>
         </aside>
-
     </div>
 
     <div id="loadingOverlay" class="loading-overlay active">
         <div class="spinner"></div>
+        <p style="margin-top:10px; color:white;">Sedang Memuat...</p>
     </div>
 
     <script src="read-script.js"></script>

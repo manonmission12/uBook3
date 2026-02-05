@@ -1,53 +1,97 @@
+/* --- RESET --- */
 * { box-sizing: border-box; }
-body { margin: 0; background: #333; font-family: sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body { margin: 0; padding: 0; background: #333; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
 /* NAVBAR */
-.reader-nav { height: 60px; background: #222; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #444; flex-shrink: 0; }
-.nav-left, .nav-right { display: flex; align-items: center; gap: 10px; flex: 1; }
+.reader-nav { 
+    height: 60px; background: #222; display: flex; justify-content: space-between; align-items: center; 
+    padding: 0 15px; border-bottom: 1px solid #444; flex-shrink: 0; z-index: 100; 
+}
+
+.nav-left, .nav-right { display: flex; align-items: center; gap: 8px; flex: 1; }
 .nav-right { justify-content: flex-end; }
 .nav-center { flex: 1; display: flex; justify-content: center; align-items: center; gap: 10px; color: #ccc; }
 
-.nav-btn, .tool-btn { width: 36px; height: 36px; background: #444; color: #ccc; border: none; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+/* TOMBOL NAVIGASI */
+.nav-btn, .tool-btn { 
+    width: 34px; height: 34px; background: #444; color: #ccc; border: none; border-radius: 4px; 
+    cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; 
+}
 .nav-btn:hover, .tool-btn:hover { background: #555; color: white; }
-.tool-btn.active { background: #10b981; color: white; }
+.tool-btn.active { background: #10b981; color: white; box-shadow: 0 0 5px #10b981; }
+
 .finish-btn { background: #10b981; color: white; padding: 8px 15px; border-radius: 20px; border: none; font-weight: bold; cursor: pointer; }
 
-#pageInput { width: 40px; background: transparent; border: none; border-bottom: 1px solid #777; color: white; text-align: center; font-weight: bold; }
+/* INPUT HALAMAN */
+.page-info { background: rgba(0,0,0,0.3); padding: 5px 10px; border-radius: 15px; display: flex; align-items: center; }
+#pageInput { width: 40px; background: transparent; border: none; color: white; text-align: center; font-weight: bold; outline: none; }
+#bookTitleDisplay { color: white; margin: 0; font-size: 0.9rem; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* PEMBATAS (SEPARATOR) */
 .sep { width: 1px; height: 20px; background: #555; margin: 0 5px; }
 
-/* LAYOUT */
+/* --- PERBAIKAN: ZOOM LEVEL KONTRAS --- */
+#zoomLevel {
+    color: #ffffff;           /* Teks Putih Terang */
+    font-weight: 800;         /* Sangat Tebal */
+    background-color: #000;   /* Background Hitam Pekat */
+    padding: 6px 10px;        /* Jarak dalam */
+    border-radius: 4px;       /* Sudut tumpul dikit */
+    border: 1px solid #777;   /* Garis pinggir biar tegas */
+    min-width: 60px;          /* Lebar minimum biar angka ga goyang */
+    text-align: center;
+    font-size: 0.9rem;
+    display: inline-block;
+    letter-spacing: 1px;      /* Jarak antar huruf */
+}
+
+/* LAYOUT 3 KOLOM */
 .main-layout { display: flex; flex: 1; height: calc(100vh - 60px); overflow: hidden; }
 
-/* SIDEBARS */
-.sidebar { background: #2a2a2a; display: flex; flex-direction: column; width: 250px; flex-shrink: 0; }
+.sidebar { background: #2a2a2a; display: flex; flex-direction: column; width: 240px; flex-shrink: 0; z-index: 50; }
 .sidebar.left { border-right: 1px solid #444; }
-.sidebar.right { border-left: 1px solid #444; }
-.sidebar-header { padding: 15px; background: #222; color: #ddd; font-weight: bold; border-bottom: 1px solid #444; }
+.sidebar.right { border-left: 1px solid #444; width: 280px; }
+.sidebar-header { padding: 12px; background: #222; color: #ddd; font-weight: bold; border-bottom: 1px solid #444; font-size: 0.9rem; }
 
+/* THUMBNAIL */
 .thumbnail-list { flex: 1; overflow-y: auto; padding: 15px; text-align: center; }
-.thumb-item { margin-bottom: 15px; cursor: pointer; opacity: 0.6; transition: 0.2s; }
+.thumb-item { margin-bottom: 20px; cursor: pointer; opacity: 0.7; transition: 0.2s; display: flex; flex-direction: column; align-items: center; }
 .thumb-item:hover, .thumb-item.active { opacity: 1; transform: scale(1.02); }
-.thumb-item canvas { width: 100%; border: 1px solid #555; background: white; }
+.thumb-item canvas { width: 140px; height: auto; min-height: 100px; background: white; border: 1px solid #555; display: block; }
 .thumb-item.active canvas { border: 3px solid #10b981; }
+.thumb-num { font-size: 0.8rem; color: #888; margin-top: 5px; }
 
+/* NOTES */
 .notes-wrapper { flex: 1; display: flex; flex-direction: column; }
 .notes-list { flex: 1; overflow-y: auto; padding: 10px; }
-.note-item { background: #444; padding: 10px; margin-bottom: 10px; border-radius: 5px; border-left: 3px solid #f59e0b; color: #eee; position: relative; }
-.del-note { position: absolute; top: 5px; right: 5px; cursor: pointer; color: #777; }
-.notes-input { padding: 15px; background: #222; border-top: 1px solid #444; display: flex; gap: 10px; }
-#noteInput { flex: 1; height: 40px; background: #333; border: 1px solid #555; color: white; padding: 5px; resize: none; border-radius: 4px; }
-#addNoteBtn { width: 40px; background: #f59e0b; border: none; border-radius: 4px; cursor: pointer; }
+.note-item { background: #444; padding: 10px; margin-bottom: 10px; border-radius: 5px; border-left: 3px solid #f59e0b; color: #eee; font-size: 0.9rem; position: relative; }
+.del-note { position: absolute; top: 5px; right: 5px; cursor: pointer; color: #777; font-size: 0.8rem; }
+.notes-input { padding: 10px; background: #222; border-top: 1px solid #444; display: flex; gap: 5px; }
+#noteInput { flex: 1; height: 35px; background: #333; border: 1px solid #555; color: white; resize: none; padding: 5px; border-radius: 3px; font-size: 0.9rem; }
+#addNoteBtn { width: 35px; background: #f59e0b; border: none; border-radius: 3px; cursor: pointer; }
 
-/* CONTENT AREA */
+/* PDF AREA & LAYERS */
 .content-area { flex: 1; background: #525659; overflow: auto; display: flex; justify-content: center; align-items: flex-start; padding: 40px; position: relative; }
 .pdf-wrapper { position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); display: inline-block; line-height: 0; }
 #the-canvas { display: block; }
-.textLayer, .highlight-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.textLayer { z-index: 2; opacity: 1; mix-blend-mode: multiply; }
-.textLayer > span { color: transparent; position: absolute; white-space: pre; cursor: text; }
-.highlight-layer { z-index: 5; pointer-events: none; }
 
-.loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+/* LAYER TEKS */
+.textLayer {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    overflow: hidden; opacity: 1; line-height: 1.0;
+    z-index: 2; mix-blend-mode: multiply;
+}
+.textLayer > span { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+::selection { background: rgba(0, 0, 255, 0.3); }
+
+/* LAYER STABILO */
+.highlight-layer {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    z-index: 5; mix-blend-mode: multiply; pointer-events: none;
+}
+
+/* UTILS */
+.loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
 .loading-overlay:not(.active) { display: none; }
 .spinner { width: 40px; height: 40px; border: 4px solid #fff; border-top-color: #10b981; border-radius: 50%; animation: spin 1s infinite linear; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
