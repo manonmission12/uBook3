@@ -49,6 +49,7 @@ function loadBook(url) {
             const viewport = page.getViewport({scale: 1.0});
             const screenWidth = window.innerWidth || 360; 
             
+            // Hitung Scale "Logical" (Pas di Layar)
             scale = (screenWidth - 20) / viewport.width;
             if (scale <= 0) scale = 0.6; 
             
@@ -64,7 +65,7 @@ function loadBook(url) {
     });
 }
 
-// --- 5. RENDER PAGE (HD IMAGE + LOGICAL TEXT) ---
+// --- 5. RENDER PAGE (HD + LOGICAL TEXT) ---
 function renderPage(num) {
     return new Promise(resolve => {
         if(!pdfDoc) return;
@@ -72,22 +73,19 @@ function renderPage(num) {
         pdfDoc.getPage(num).then(page => {
             const dpr = getDPR();
             
-            // 1. VIEWPORT HD: Untuk Gambar Canvas agar TAJAM
-            // Scale dikali DPR (misal 2.0 atau 3.0)
+            // 1. VIEWPORT HD (Gambar Tajam)
             const viewportHD = page.getViewport({scale: scale * dpr});
             
-            // 2. VIEWPORT LOGIS: Untuk Text Layer agar PAS di Layar
-            // Scale sesuai ukuran layar (tidak dikali DPR)
+            // 2. VIEWPORT LOGIS (Posisi Teks Pas)
             const viewportLogical = page.getViewport({scale: scale});
             
-            // Set Ukuran Canvas (Pixel Fisik Tinggi)
+            // Set Ukuran Canvas (Pixel Fisik)
             canvas.width = viewportHD.width;
             canvas.height = viewportHD.height;
             hCanvas.width = viewportHD.width;
             hCanvas.height = viewportHD.height;
             
-            // Set Ukuran Container Text Layer (Sesuai Logis/Layar)
-            // CSS width:100% akan membuatnya pas dengan container
+            // Set Ukuran Text Layer (Pixel Logis)
             textLayerDiv.style.width = `${viewportLogical.width}px`;
             textLayerDiv.style.height = `${viewportLogical.height}px`;
 
@@ -97,12 +95,12 @@ function renderPage(num) {
             page.render(renderCtx).promise.then(() => {
                 return page.getTextContent();
             }).then(textContent => {
-                // RENDER TEKS (Pakai LOGICAL biar pas posisinya)
+                // RENDER TEKS (Pakai LOGICAL biar pas)
                 textLayerDiv.innerHTML = '';
                 pdfjsLib.renderTextLayer({
                     textContent: textContent,
                     container: textLayerDiv,
-                    viewport: viewportLogical, // <--- KUNCI PERBAIKAN
+                    viewport: viewportLogical, // <-- INI KUNCINYA
                     textDivs: []
                 });
 
@@ -111,7 +109,6 @@ function renderPage(num) {
                 renderNotes();
                 updateThumbActive();
                 updateToolState(); // Reset pointer
-                
                 resolve();
             });
         }).catch(err => console.error(err));
@@ -140,12 +137,10 @@ function changePage(delta) {
 // --- 7. TOOL STATE ---
 function updateToolState() {
     if (currentTool === 'move') {
-        // Mode Move: Hidupkan Text Layer (Bisa Blok), Matikan Canvas Coretan
-        textLayerDiv.style.pointerEvents = 'auto'; 
+        textLayerDiv.style.pointerEvents = 'auto'; // Move = Blok Teks ON
         hCanvas.style.pointerEvents = 'none';      
     } else {
-        // Mode Gambar: Matikan Text Layer, Hidupkan Canvas Coretan
-        textLayerDiv.style.pointerEvents = 'none'; 
+        textLayerDiv.style.pointerEvents = 'none'; // Draw = Blok Teks OFF
         hCanvas.style.pointerEvents = 'auto';      
     }
 }
@@ -184,7 +179,7 @@ function setupUI() {
             currentTool = t;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
-            updateToolState(); 
+            updateToolState();
             sheet.classList.remove('active'); bg.classList.remove('active');
         };
     });
@@ -237,7 +232,6 @@ function redrawAnnotations() {
     const dpr = getDPR();
     annotationData[pageNum].forEach(p => {
         hCtx.beginPath(); hCtx.lineCap='round'; hCtx.lineJoin='round';
-        // Kalikan tebal garis dengan DPR
         hCtx.lineWidth = (p.tool==='eraser' ? 30 : 20) * dpr;
         hCtx.strokeStyle = p.tool==='highlight' ? p.color : 'rgba(0,0,0,1)';
         hCtx.globalCompositeOperation = p.tool==='eraser' ? 'destination-out' : 'multiply';
@@ -250,28 +244,19 @@ function redrawAnnotations() {
     hCtx.globalCompositeOperation='source-over';
 }
 
-// --- 10. SWIPE GESTURE ---
 function setupSwipe() {
     let ts = 0;
-    let startTime = 0;
     const area = document.getElementById('readerArea');
     
     area.addEventListener('touchstart', e => { 
-        if(currentTool==='move') {
-            ts = e.changedTouches[0].screenX; 
-            startTime = new Date().getTime();
-        }
+        if(currentTool==='move') ts = e.changedTouches[0].screenX; 
     }, {passive: false});
     
     area.addEventListener('touchend', e => {
         if(currentTool==='move') {
             const te = e.changedTouches[0].screenX;
             const diff = te - ts;
-            const timeDiff = new Date().getTime() - startTime;
-
-            // Swipe Cepat & Jauh = Ganti Halaman
-            // Tahan Lama = Blok Teks
-            if(Math.abs(diff) > 50 && timeDiff < 300) {
+            if(Math.abs(diff) > 50) {
                 if(diff < 0) changePage(1); 
                 else changePage(-1);
             }

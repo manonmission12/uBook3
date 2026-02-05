@@ -47,8 +47,9 @@ canvas {
     opacity: 1; 
     line-height: 1.0;
     mix-blend-mode: multiply;
-    /* Lebar layer teks ikut container (100%), isinya nanti diatur JS agar pas */
-    width: 100% !important; height: 100% !important;
+    
+    /* Ukuran diatur oleh JS agar presisi sama Logical Viewport */
+    /* Jangan pakai width 100% !important disini agar tidak konflik */
     z-index: 2; 
     
     /* IZINKAN SELEKSI TEKS */
@@ -64,7 +65,7 @@ canvas {
     transform-origin: 0% 0%;
 }
 
-/* Warna Blok */
+/* Warna Blok Biru */
 ::selection { background: rgba(0, 0, 255, 0.3); }
 
 /* LAYER STABILO */
