@@ -1,36 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // =========================================
-    // 1. AUTH & PROFILE LOGIC (FIX LOGOUT)
+    // 1. AUTH & PROFILE (FINAL FIX)
     // =========================================
     const currentUser = localStorage.getItem('currentUser');
-    const profileMenu = document.querySelector('.profile-menu');
+    
+    // Ambil elemen dengan ID yang PASTI
+    const profileMenu = document.getElementById('profileMenu') || document.querySelector('.profile-menu');
+    const loginBtnContainer = document.getElementById('loginBtnContainer');
+    
+    // Element User Info (Pakai ID baru)
+    const avatarImg = document.getElementById('userAvatar');
+    const userNameSpan = document.getElementById('userNameDisplay');
+    
+    // Dropdown Trigger
     const profileTrigger = document.querySelector('.profile-trigger');
     const dropdown = document.querySelector('.dropdown-menu');
-    const avatarImg = document.querySelector('.profile-trigger img.avatar');
-    const userNameSpan = document.querySelector('.profile-trigger span');
     
     // Cek Status Login
     if (currentUser) {
-        // A. Jika User Login -> Tampilkan Menu Profil
+        // A. JIKA LOGIN: Tampilkan Profil, Sembunyikan Tombol Login
         if (profileMenu) profileMenu.style.display = 'block'; 
+        if (loginBtnContainer) loginBtnContainer.style.display = 'none';
         
-        // Set Nama User
+        // Update Nama
         if (userNameSpan) userNameSpan.innerText = `Halo, ${currentUser}`;
         
-        // Set Avatar
+        // Update Foto Profil (Anti Gagal)
         if (avatarImg) {
             avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser)}&background=10b981&color=fff&bold=true`;
         }
 
-        // --- FIX DROPDOWN (KLIK FOTO) ---
+        // --- DROPDOWN LOGIC ---
         if (profileTrigger && dropdown) {
             profileTrigger.addEventListener('click', (e) => {
-                e.stopPropagation(); // Biar gak langsung ketutup sama event document
+                e.stopPropagation();
                 dropdown.classList.toggle('active');
             });
 
-            // Klik di luar -> Tutup Dropdown
             document.addEventListener('click', (e) => {
                 if (!profileTrigger.contains(e.target) && !dropdown.contains(e.target)) {
                     dropdown.classList.remove('active');
@@ -38,26 +45,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // --- FIX TOMBOL LOGOUT ---
-        // Cari semua link yang mengarah ke login.html di dalam dropdown
-        const logoutLinks = document.querySelectorAll('.dropdown-menu a[href*="login.html"]');
-        
-        logoutLinks.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault(); // Matikan link bawaan biar script yang jalan
-                
-                if (confirm("Yakin ingin keluar dari akun?")) {
-                    // 1. Hapus data login
-                    localStorage.removeItem('currentUser');
-                    // 2. Redirect ke halaman login
-                    window.location.href = 'login.html';
+        // --- LOGOUT LOGIC (ID: btnLogout) ---
+        const btnLogout = document.getElementById('btnLogout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', (e) => {
+                e.preventDefault(); // Matikan link
+                if (confirm("Yakin ingin keluar akun?")) {
+                    localStorage.removeItem('currentUser'); // Hapus sesi
+                    window.location.replace('login.html'); // Pindah halaman
                 }
             });
-        });
+        }
 
     } else {
-        // B. Jika Belum Login -> Sembunyikan Profil
+        // B. JIKA TIDAK LOGIN: Sembunyikan Profil, Tampilkan Tombol Login
         if (profileMenu) profileMenu.style.display = 'none';
+        if (loginBtnContainer) loginBtnContainer.style.display = 'block';
     }
 
     // =========================================
@@ -66,13 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggles = document.querySelectorAll('.theme-btn');
     const root = document.documentElement;
 
-    // Load Tema Tersimpan
     if (localStorage.getItem('theme') === 'dark') {
         root.setAttribute('data-theme', 'dark');
         themeToggles.forEach(btn => btn.querySelector('i').className = 'fas fa-sun');
     }
 
-    // Toggle Tema
     themeToggles.forEach(btn => {
         btn.addEventListener('click', () => {
             const isDark = root.getAttribute('data-theme') === 'dark';
@@ -84,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Mobile Menu
     const menuBtn = document.getElementById('mobileMenuBtn');
     const navMenu = document.getElementById('navMenu');
     if(menuBtn && navMenu) {
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================
-    // 3. DATA BUKU (16 BUKU ORIGINAL)
+    // 3. DATA BUKU
     // =========================================
     const defaultBooks = [
         { id: "B1", title: "Filosofi Teras", author: "Henry Manampiring", category: "Filsafat", img: "covers/filosofi teras.png", pdf: "books/1. Filosofi Teras.pdf", rating: 4.8 },
@@ -255,7 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 5. MODAL & SECURITY (READ) ---
+    // =========================================
+    // 5. MODAL & SECURITY
+    // =========================================
     function openModal(book) {
         if (!modal) return;
         
