@@ -7,6 +7,7 @@
     
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="dashboard.css">
+    
     <link rel="stylesheet" href="mobile.css">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -29,63 +30,60 @@
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
-
+    
             <div class="nav-menu" id="navMenu">
                 <div class="nav-links">
-                    <a href="index.html" class="nav-link active">Beranda</a>
-                    <a href="upload.html" class="nav-link">Upload Buku</a>
-                    <a href="#" class="nav-link">Kategori</a>
+                    <a href="dashboard.html" class="nav-link active">Beranda</a>
+                    <a href="profile.html" class="nav-link">Profil</a>
+                    <a href="upload.html" class="nav-link">Upload</a>
                 </div>
+                
                 <div class="nav-right">
-                    <div class="desktop-only">
-                        <button id="desktopThemeToggle" class="theme-btn" title="Ganti Tema">
-                            <i class="fas fa-moon"></i>
-                        </button>
+                    <button id="themeToggle" class="theme-btn desktop-only" title="Ganti Tema">
+                        <i class="fas fa-moon"></i>
+                    </button>
+    
+                    <div class="profile-menu" id="profileMenuWrapper">
+                        <div class="profile-trigger" id="profileTrigger">
+                            <span id="userDisplay" class="user-name">User</span>
+                            <img src="https://ui-avatars.com/api/?background=random&color=fff" class="avatar" alt="Profil">
+                        </div>
+                        
+                        <div class="dropdown-menu" id="profileDropdown">
+                            <a href="profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profil Saya</a>
+                            <a href="profile.html#koleksi" class="dropdown-item"><i class="fas fa-bookmark"></i> Koleksi Saya</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" id="logoutBtn" class="dropdown-item logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </div>
                     </div>
                     
-                    <div class="profile-menu" id="profileMenu">
-                        <div class="profile-trigger">
-                            <img src="" alt="Profil" class="avatar" id="userAvatar">
-                            
-                            <span class="desktop-only" id="userNameDisplay">Halo, User</span>
-                            
-                            <i class="fas fa-chevron-down desktop-only"></i>
-                        </div>
-                        <div class="dropdown-menu">
-                            <a href="profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profil Saya</a>
-                            <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Pengaturan</a>
-                            
-                            <a href="login.html" id="btnLogout" class="dropdown-item" style="color: #ef4444;">
-                                <i class="fas fa-sign-out-alt"></i> Keluar
-                            </a>
-                        </div>
-                    </div>
-
                     <div id="loginBtnContainer" style="display: none;">
-                        <a href="login.html" class="btn-primary" style="padding: 8px 20px; text-decoration: none; display: inline-block;">Masuk</a>
+                        <a href="login.html" class="btn-upload-inline" style="border: 1px solid var(--text-primary);">Masuk</a>
                     </div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="dashboard-content">
+    <main class="dashboard-content">
         <div class="header-section">
-            <h1 class="page-title">Jelajahi Dunia Pengetahuan</h1>
-            <p class="page-subtitle">Temukan ribuan buku digital gratis untuk pengembangan dirimu.</p>
+            <h1 class="page-title">Perpustakaan Digital</h1>
+            <p class="page-subtitle">Koleksi buku pilihan untuk masa depanmu.</p>
         </div>
-
+        
         <div class="dashboard-toolbar">
             <div class="search-box">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" id="searchInput" placeholder="Cari judul buku, penulis...">
+                <input type="text" id="searchInput" placeholder="Cari judul buku atau penulis...">
             </div>
+            
             <div class="sort-box">
+                <i class="fas fa-sort-amount-down"></i>
                 <select id="dashboardSort">
-                    <option value="newest">Terbaru Ditambahkan</option>
-                    <option value="popular">Paling Populer</option>
+                    <option value="default">Rekomendasi</option>
+                    <option value="newest">Terbaru</option>
                     <option value="rating">Rating Tertinggi</option>
-                    <option value="az">A - Z</option>
+                    <option value="az">Judul (A-Z)</option>
                 </select>
             </div>
         </div>
@@ -93,21 +91,59 @@
         <div class="category-tabs">
             <button class="btn-cat active" data-cat="all">Semua</button>
             <button class="btn-cat" data-cat="Bisnis">Bisnis</button>
-            <button class="btn-cat" data-cat="Filsafat">Filsafat</button>
             <button class="btn-cat" data-cat="Self-Improvement">Self-Improvement</button>
-            <button class="btn-cat" data-cat="Fiksi">Fiksi</button>
+            <button class="btn-cat" data-cat="Filsafat">Filsafat</button>
             <button class="btn-cat" data-cat="Teknologi">Teknologi</button>
+            <button class="btn-cat" data-cat="Novel">Novel</button>
             <button class="btn-cat" data-cat="Sejarah">Sejarah</button>
+            
+            <button class="btn-cat saved-tab" data-cat="reading"><i class="fas fa-book-open"></i> Baca</button>
+            <button class="btn-cat saved-tab" data-cat="finished"><i class="fas fa-check-double"></i> Selesai</button>
         </div>
 
-        <div id="bookGrid" class="book-grid"></div>
-    </div>
+        <div class="book-grid" id="bookGrid"></div>
+    </main>
 
-    <a href="upload.html" class="fab-float desktop-only">
-        <i class="fas fa-plus"></i> Upload
-    </a>
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-section brand-section">
+                <h3><i class="fas fa-book-reader"></i> Era Baru</h3>
+                <p>Platform perpustakaan digital masa depan. Akses ribuan ilmu dan cerita inspiratif di ujung jarimu.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+            
+            <div class="footer-section links-section">
+                <h4>Jelajahi</h4>
+                <ul>
+                    <li><a href="dashboard.html">Beranda</a></li>
+                    <li><a href="upload.html">Upload Buku</a></li>
+                    <li><a href="profile.html">Profil Saya</a></li>
+                    <li><a href="#">Kategori Populer</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section links-section">
+                <h4>Bantuan</h4>
+                <ul>
+                    <li><a href="#">FAQ / Tanya Jawab</a></li>
+                    <li><a href="#">Syarat & Ketentuan</a></li>
+                    <li><a href="#">Kebijakan Privasi</a></li>
+                    <li><a href="#">Hubungi Kami</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            &copy; 2025 Era Baru Membaca. Dibuat dengan ❤️ untuk Indonesia Membaca.
+        </div>
+    </footer>
 
-    <div id="bookModal" class="modal-overlay">
+    <div class="modal-overlay" id="bookModal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal()">&times;</span>
             <div class="modal-body">
