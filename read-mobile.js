@@ -1,3 +1,9 @@
+// --- PROTEKSI HALAMAN (SECURITY) ---
+if (!localStorage.getItem('currentUser')) {
+    alert("Akses ditolak! Silakan login atau daftar terlebih dahulu.");
+    window.location.href = 'login.html';
+}
+
 // --- 1. CONFIG PDF.JS ---
 var pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -16,7 +22,7 @@ let textLayerDiv = document.getElementById('text-layer');
 let currentTool = 'move', isDrawing = false, isAnimating = false;
 let annotationData = {}, notesData = {}, undoStack = [], redoStack = [];
 
-// Kunci Penyimpanan Unik
+// Kunci Penyimpanan Unik (Berdasarkan URL Buku)
 let STORAGE_KEY = 'pdf_data_default';
 
 const getDPR = () => window.devicePixelRatio || 1;
@@ -27,8 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const source = params.get('source');
     
     if(source) {
+        // Set Key Unik agar data tiap buku beda
         STORAGE_KEY = 'pdf_data_' + encodeURIComponent(source);
-        loadFromStorage();
+        loadFromStorage(); // Load data lama
         loadBook(decodeURIComponent(source));
     } else { 
         alert("Buku tidak ditemukan."); 
@@ -47,11 +54,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 4. STORAGE MANAGER ---
+// ... (LANJUTKAN DENGAN SISA KODINGAN read-mobile.js YANG LAMA) ...
+// ... (Bagian renderPage, saveToStorage, dll tetap sama) ...
+// Kalau bingung, pakai file read-mobile.js yang terakhir sukses, cuma tambah IF LOGIN di paling atas.
+
 function saveToStorage() {
-    const data = { annotations: annotationData, notes: notesData };
+    const data = {
+        annotations: annotationData,
+        notes: notesData
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    console.log("Data saved to local storage");
 }
 
 function loadFromStorage() {
@@ -61,7 +73,9 @@ function loadFromStorage() {
             const data = JSON.parse(saved);
             annotationData = data.annotations || {};
             notesData = data.notes || {};
-        } catch (e) { console.error("Error load data", e); }
+        } catch (e) {
+            console.error("Gagal load data:", e);
+        }
     }
 }
 
@@ -77,6 +91,7 @@ function loadBook(url) {
             const viewport = page.getViewport({scale: 1.0});
             const screenWidth = window.innerWidth || 360; 
             
+            // Hitung Scale "Logical" (Pas di Layar)
             scale = (screenWidth - 20) / viewport.width;
             if (scale <= 0) scale = 0.6; 
             
@@ -100,25 +115,29 @@ function renderPage(num) {
         pdfDoc.getPage(num).then(page => {
             const dpr = getDPR();
             
-            // Viewport HD (Gambar) & Logical (Teks)
+            // 1. VIEWPORT HD (Untuk Gambar Canvas agar TAJAM)
             const viewportHD = page.getViewport({scale: scale * dpr});
+            
+            // 2. VIEWPORT LOGIS (Untuk Text Layer agar POSISI PAS)
             const viewportLogical = page.getViewport({scale: scale});
             
-            // Set Ukuran Canvas
+            // Set Ukuran Canvas (Pixel Fisik Tinggi - HD)
             canvas.width = viewportHD.width;
             canvas.height = viewportHD.height;
             hCanvas.width = viewportHD.width;
             hCanvas.height = viewportHD.height;
             
-            // Set Ukuran Text Layer
+            // Set Ukuran Container Text Layer (Sesuai Logis/Layar)
             textLayerDiv.style.width = `${viewportLogical.width}px`;
             textLayerDiv.style.height = `${viewportLogical.height}px`;
 
+            // Render Gambar (Pakai HD)
             const renderCtx = { canvasContext: ctx, viewport: viewportHD };
             
             page.render(renderCtx).promise.then(() => {
                 return page.getTextContent();
             }).then(textContent => {
+                // RENDER TEKS (Pakai LOGICAL biar pas posisinya)
                 textLayerDiv.innerHTML = '';
                 pdfjsLib.renderTextLayer({
                     textContent: textContent,
@@ -129,17 +148,15 @@ function renderPage(num) {
 
                 redrawAnnotations(); 
                 document.getElementById('currPage').innerText = num;
-                renderNotes();
+                renderNotes(); // Update list catatan
                 updateThumbActive();
-                updateToolState();
-                
+                updateToolState(); // Reset pointer events
                 resolve();
             });
         }).catch(err => console.error(err));
     });
 }
 
-// --- 7. INTERACTIONS ---
 function changePage(delta) {
     if(isAnimating) return;
     const newNum = pageNum + delta;
@@ -161,11 +178,11 @@ function changePage(delta) {
 function updateToolState() {
     if (currentTool === 'move') {
         textLayerDiv.style.pointerEvents = 'auto'; 
-        hCanvas.style.pointerEvents = 'none';
+        hCanvas.style.pointerEvents = 'none';      
     } else {
         textLayerDiv.style.pointerEvents = 'none'; 
-        hCanvas.style.pointerEvents = 'auto';
-    } 
+        hCanvas.style.pointerEvents = 'auto';      
+    }
 }
 
 function changeZoom(delta) {
@@ -176,7 +193,6 @@ function changeZoom(delta) {
     renderPage(pageNum);
 }
 
-// --- 8. UI HANDLERS ---
 function setupUI() {
     const sheet = document.getElementById('bottomSheet');
     const bg = document.getElementById('backdrop');
@@ -195,33 +211,27 @@ function setupUI() {
 
     ['move', 'highlight', 'eraser'].forEach(t => {
         const id = 'tool' + t.charAt(0).toUpperCase() + t.slice(1);
-        document.getElementById(id).onclick = () => {
+        const el = document.getElementById(id);
+        if(!el) return;
+
+        el.onclick = () => {
             currentTool = t;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
+            el.classList.add('active');
             updateToolState();
             sheet.classList.remove('active'); bg.classList.remove('active');
         };
     });
 
-    // TOMBOL SIMPAN MANUAL
-    document.getElementById('toolSave').onclick = () => {
-        saveToStorage();
-        alert("Berhasil disimpan!");
-        sheet.classList.remove('active'); 
-        bg.classList.remove('active');
-    };
-
     document.getElementById('toolZoomIn').onclick = () => changeZoom(0.2);
     document.getElementById('toolZoomOut').onclick = () => changeZoom(-0.2);
     document.getElementById('toolUndo').onclick = undo;
     document.getElementById('toolRedo').onclick = redo;
-    
     document.getElementById('toolClear').onclick = () => { 
         if(confirm('Hapus semua coretan di halaman ini?')) { 
             saveState(); 
-            annotationData[pageNum] = []; 
-            redrawAnnotations();
+            annotationData[pageNum]=[]; 
+            redrawAnnotations(); 
             saveToStorage();
         }
     };
@@ -238,7 +248,6 @@ function setupUI() {
     };
 }
 
-// --- 9. DRAWING ---
 function setupDrawing() {
     function getTouchPos(e) {
         const rect = hCanvas.getBoundingClientRect();
@@ -265,10 +274,7 @@ function setupDrawing() {
         redrawAnnotations();
     }, {passive:false});
 
-    hCanvas.addEventListener('touchend', () => {
-        isDrawing = false;
-        saveToStorage();
-    });
+    hCanvas.addEventListener('touchend', () => { isDrawing=false; saveToStorage(); });
 }
 
 function redrawAnnotations() {
@@ -315,26 +321,9 @@ function setupSwipe() {
     }, {passive: false});
 }
 
-// --- UTILS ---
 function saveState() { undoStack.push(JSON.parse(JSON.stringify(annotationData))); redoStack=[]; }
-
-function undo() { 
-    if(undoStack.length>0) { 
-        redoStack.push(JSON.parse(JSON.stringify(annotationData))); 
-        annotationData=undoStack.pop(); 
-        redrawAnnotations(); 
-        saveToStorage();
-    } 
-}
-
-function redo() { 
-    if(redoStack.length>0) { 
-        undoStack.push(JSON.parse(JSON.stringify(annotationData))); 
-        annotationData=redoStack.pop(); 
-        redrawAnnotations(); 
-        saveToStorage();
-    } 
-}
+function undo() { if(undoStack.length>0) { redoStack.push(JSON.parse(JSON.stringify(annotationData))); annotationData=undoStack.pop(); redrawAnnotations(); saveToStorage(); } }
+function redo() { if(redoStack.length>0) { undoStack.push(JSON.parse(JSON.stringify(annotationData))); annotationData=redoStack.pop(); redrawAnnotations(); saveToStorage(); } }
 
 async function generateThumbnails(pdf) {
     const grid = document.getElementById('thumbGrid'); grid.innerHTML = '';
@@ -377,10 +366,15 @@ function renderNotes() {
             item.style.justifyContent = 'space-between';
             item.innerHTML = `
                 <div style="flex:1; padding-right:10px;">
-                    <div style="font-size:0.75rem; color:#f59e0b; font-weight:bold;">Hal ${pNum}</div>
+                    <div style="font-size:0.75rem; color:#f59e0b; font-weight:bold; margin-bottom:2px;">
+                        Halaman ${pNum}
+                    </div>
                     <div style="word-break:break-word;">${note}</div>
                 </div>
-                <div onclick="deleteNote(${pNum}, ${idx})" style="color:#ef4444;cursor:pointer;font-size:1.2rem;">&times;</div>
+                <div onclick="deleteNote(${pNum}, ${idx})" 
+                     style="color:#ef4444; cursor:pointer; font-size:1.2rem; padding:0 5px;">
+                    &times;
+                </div>
             `;
             list.appendChild(item);
         });

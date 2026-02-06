@@ -1,98 +1,103 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 0. DARK MODE (DUAL BUTTON LOGIC) ---
-    // Ambil semua tombol tema (desktop & mobile)
-    const themeToggles = document.querySelectorAll('.theme-btn');
-    const root = document.documentElement;
+    // =========================================
+    // 1. AUTH & PROFILE LOGIC (FIX LOGOUT)
+    // =========================================
+    const currentUser = localStorage.getItem('currentUser');
+    const profileMenu = document.querySelector('.profile-menu');
+    const profileTrigger = document.querySelector('.profile-trigger');
+    const dropdown = document.querySelector('.dropdown-menu');
+    const avatarImg = document.querySelector('.profile-trigger img.avatar');
+    const userNameSpan = document.querySelector('.profile-trigger span');
+    
+    // Cek Status Login
+    if (currentUser) {
+        // A. Jika User Login -> Tampilkan Menu Profil
+        if (profileMenu) profileMenu.style.display = 'block'; 
+        
+        // Set Nama User
+        if (userNameSpan) userNameSpan.innerText = `Halo, ${currentUser}`;
+        
+        // Set Avatar
+        if (avatarImg) {
+            avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser)}&background=10b981&color=fff&bold=true`;
+        }
 
-    // Load Theme Awal
-    if (localStorage.getItem('theme') === 'dark') {
-        root.setAttribute('data-theme', 'dark');
-        // Update semua ikon jadi matahari
-        themeToggles.forEach(btn => {
-            const icon = btn.querySelector('i');
-            if(icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
-        });
-    }
+        // --- FIX DROPDOWN (KLIK FOTO) ---
+        if (profileTrigger && dropdown) {
+            profileTrigger.addEventListener('click', (e) => {
+                e.stopPropagation(); // Biar gak langsung ketutup sama event document
+                dropdown.classList.toggle('active');
+            });
 
-    // Event Listener untuk SEMUA tombol tema
-    themeToggles.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const currentTheme = root.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            root.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            // Update ikon di SEMUA tombol secara bersamaan
-            themeToggles.forEach(b => {
-                const icon = b.querySelector('i');
-                if (icon) {
-                    if (newTheme === 'dark') {
-                        icon.classList.remove('fa-moon');
-                        icon.classList.add('fa-sun');
-                    } else {
-                        icon.classList.remove('fa-sun');
-                        icon.classList.add('fa-moon');
-                    }
+            // Klik di luar -> Tutup Dropdown
+            document.addEventListener('click', (e) => {
+                if (!profileTrigger.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            });
+        }
+
+        // --- FIX TOMBOL LOGOUT ---
+        // Cari semua link yang mengarah ke login.html di dalam dropdown
+        const logoutLinks = document.querySelectorAll('.dropdown-menu a[href*="login.html"]');
+        
+        logoutLinks.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault(); // Matikan link bawaan biar script yang jalan
+                
+                if (confirm("Yakin ingin keluar dari akun?")) {
+                    // 1. Hapus data login
+                    localStorage.removeItem('currentUser');
+                    // 2. Redirect ke halaman login
+                    window.location.href = 'login.html';
                 }
             });
         });
+
+    } else {
+        // B. Jika Belum Login -> Sembunyikan Profil
+        if (profileMenu) profileMenu.style.display = 'none';
+    }
+
+    // =========================================
+    // 2. DARK MODE & MOBILE MENU
+    // =========================================
+    const themeToggles = document.querySelectorAll('.theme-btn');
+    const root = document.documentElement;
+
+    // Load Tema Tersimpan
+    if (localStorage.getItem('theme') === 'dark') {
+        root.setAttribute('data-theme', 'dark');
+        themeToggles.forEach(btn => btn.querySelector('i').className = 'fas fa-sun');
+    }
+
+    // Toggle Tema
+    themeToggles.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const isDark = root.getAttribute('data-theme') === 'dark';
+            const newTheme = isDark ? 'light' : 'dark';
+            root.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            const newIcon = isDark ? 'fa-moon' : 'fa-sun';
+            themeToggles.forEach(b => b.querySelector('i').className = `fas ${newIcon}`);
+        });
     });
 
-    // --- 1. MOBILE MENU LOGIC ---
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    // Mobile Menu
+    const menuBtn = document.getElementById('mobileMenuBtn');
     const navMenu = document.getElementById('navMenu');
-
-    if (mobileMenuBtn && navMenu) {
-        mobileMenuBtn.addEventListener('click', () => {
+    if(menuBtn && navMenu) {
+        menuBtn.addEventListener('click', () => {
             navMenu.classList.toggle('active');
-            const menuIcon = mobileMenuBtn.querySelector('i');
-            if (navMenu.classList.contains('active')) {
-                menuIcon.classList.replace('fa-bars', 'fa-times');
-            } else {
-                menuIcon.classList.replace('fa-times', 'fa-bars');
-            }
+            const icon = menuBtn.querySelector('i');
+            icon.className = navMenu.classList.contains('active') ? 'fas fa-times' : 'fas fa-bars';
         });
     }
 
-    // --- 2. AUTH & USER INFO (AVATAR FIX) ---
-    const currentUser = localStorage.getItem('currentUser'); 
-    const profileMenuWrapper = document.getElementById('profileMenuWrapper');
-    const loginBtnContainer = document.getElementById('loginBtnContainer');
-    const userDisplay = document.getElementById('userDisplay');
-
-    if (currentUser) {
-        if(profileMenuWrapper) profileMenuWrapper.style.display = 'flex';
-        if(loginBtnContainer) loginBtnContainer.style.display = 'none';
-        if(userDisplay) userDisplay.innerText = `Halo, ${currentUser}`;
-
-        // Avatar Logic
-        const avatarImg = document.querySelector('.profile-trigger .avatar');
-        const savedAvatar = localStorage.getItem(`avatar_${currentUser}`);
-        if (avatarImg) {
-            avatarImg.src = savedAvatar ? savedAvatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser)}&background=random&color=fff`;
-        }
-
-        const profileTrigger = document.getElementById('profileTrigger');
-        const profileDropdown = document.getElementById('profileDropdown');
-        if(profileTrigger && profileDropdown) {
-            profileTrigger.addEventListener('click', (e) => { e.stopPropagation(); profileDropdown.classList.toggle('active'); });
-            document.addEventListener('click', (e) => { if (!profileTrigger.contains(e.target)) profileDropdown.classList.remove('active'); });
-        }
-        
-        const logoutBtn = document.getElementById('logoutBtn');
-        if(logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                if(confirm('Yakin ingin keluar?')) { localStorage.removeItem('currentUser'); window.location.href = 'login.html'; }
-            });
-        }
-    } else {
-        if(profileMenuWrapper) profileMenuWrapper.style.display = 'none';
-        if(loginBtnContainer) loginBtnContainer.style.display = 'block';
-    }
-
-    // --- 3. DATA BUKU (16 ORIGINAL - LOCAL FILE) ---
+    // =========================================
+    // 3. DATA BUKU (16 BUKU ORIGINAL)
+    // =========================================
     const defaultBooks = [
         { id: "B1", title: "Filosofi Teras", author: "Henry Manampiring", category: "Filsafat", img: "covers/filosofi teras.png", pdf: "books/1. Filosofi Teras.pdf", rating: 4.8 },
         { id: "B2", title: "This is Marketing", author: "Seth Godin", category: "Bisnis", img: "covers/this is marketing.png", pdf: "books/2. This is marketing.pdf", rating: 4.6 },
@@ -112,34 +117,51 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: "B16", title: "Think Like a Freak", author: "Steven D. Levitt", category: "Self-Improvement", img: "covers/think like a freak.png", pdf: "books/16. Think like a freak.pdf", rating: 4.9 }
     ];
 
-    let uploadedBooks = JSON.parse(localStorage.getItem(`uploads_${currentUser}`)) || [];
+    let uploadedBooks = currentUser ? (JSON.parse(localStorage.getItem(`uploads_${currentUser}`)) || []) : [];
     let allBooks = [...uploadedBooks.reverse(), ...defaultBooks]; 
 
-    // --- 4. RENDER BUKU ---
-    const bookGrid = document.getElementById('bookGrid'); 
+    // --- 4. RENDER LOGIC ---
+    const bookGrid = document.getElementById('bookGrid');
     const searchInput = document.getElementById('searchInput');
     const dashboardSort = document.getElementById('dashboardSort');
     const categoryTabs = document.querySelectorAll('.btn-cat');
+    const modal = document.getElementById('bookModal');
 
+    // Data User
     const userRatings = JSON.parse(localStorage.getItem('userRatings') || '{}');
-    let savedBooks = JSON.parse(localStorage.getItem(`savedBooks_${currentUser}`) || '[]');
-    let readingHistory = JSON.parse(localStorage.getItem(`readingHistory_${currentUser}`) || '{}');
+    let savedBooks = currentUser ? (JSON.parse(localStorage.getItem(`savedBooks_${currentUser}`) || '[]')) : [];
+    let readingHistory = currentUser ? (JSON.parse(localStorage.getItem(`readingHistory_${currentUser}`) || '{}')) : {};
 
     function getBookStatus(book) {
+        if (!currentUser) return 'none';
         if (readingHistory[book.title] === 'finished') return 'finished';
         if (readingHistory[book.title] === 'reading') return 'reading';
         if (savedBooks.some(b => b.id.toString() === book.id.toString())) return 'want';
         return 'none';
     }
+
     function setBookStatus(book, newStatus) {
-        if (!currentUser) return;
+        if (!currentUser) return alert('Silakan login terlebih dahulu!');
+        
         delete readingHistory[book.title];
         savedBooks = savedBooks.filter(b => b.id.toString() !== book.id.toString());
+        
         if (newStatus === 'want') savedBooks.push(book);
         else if (newStatus === 'reading') readingHistory[book.title] = 'reading';
         else if (newStatus === 'finished') readingHistory[book.title] = 'finished';
+        
         localStorage.setItem(`savedBooks_${currentUser}`, JSON.stringify(savedBooks));
         localStorage.setItem(`readingHistory_${currentUser}`, JSON.stringify(readingHistory));
+    }
+
+    function generateStars(rating) {
+        let stars = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= Math.floor(rating)) stars += '<i class="fas fa-star filled" style="color:#f59e0b"></i>';
+            else if (i === Math.ceil(rating) && !Number.isInteger(rating)) stars += '<i class="fas fa-star-half-alt filled" style="color:#f59e0b"></i>';
+            else stars += '<i class="far fa-star" style="color:#e5e7eb"></i>';
+        }
+        return stars;
     }
 
     function renderBooks(filterText = '', category = 'all') {
@@ -149,24 +171,21 @@ document.addEventListener('DOMContentLoaded', () => {
         let filtered = allBooks.filter(b => {
             const matchText = b.title.toLowerCase().includes(filterText.toLowerCase()) || 
                               b.author.toLowerCase().includes(filterText.toLowerCase());
-            let matchCat = true;
-            if (category === 'all') matchCat = true;
-            else if (['want', 'reading', 'finished'].includes(category)) {
+            let matchCat = (category === 'all') || (b.category === category);
+            
+            if(['want', 'reading', 'finished'].includes(category)) {
                 const status = getBookStatus(b);
-                if (category === 'want') matchCat = (status === 'want');
-                if (category === 'reading') matchCat = (status === 'reading');
-                if (category === 'finished') matchCat = (status === 'finished');
-            } else { matchCat = (b.category === category); }
+                matchCat = (status === category);
+            }
             return matchText && matchCat;
         });
 
         const sortVal = dashboardSort ? dashboardSort.value : 'default';
-        if (sortVal === 'az') filtered.sort((a,b) => a.title.localeCompare(b.title));
-        if (sortVal === 'newest') filtered.reverse();
         if (sortVal === 'rating') filtered.sort((a,b) => b.rating - a.rating);
+        if (sortVal === 'az') filtered.sort((a,b) => a.title.localeCompare(b.title));
 
         if (filtered.length === 0) {
-            bookGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-tertiary);"><p>Buku tidak ditemukan.</p></div>`;
+            bookGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:gray; padding:20px;">Buku tidak ditemukan.</div>`;
             return;
         }
 
@@ -174,151 +193,134 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'book-card';
             
-            const imgSrc = book.img || book.image || book.cover;
+            const imgSrc = book.img || book.image || book.cover || 'https://via.placeholder.com/300x450?text=No+Cover';
             
-            const myRating = userRatings[book.title];
-            const currentScore = myRating ? myRating.score : (book.rating || 0);
-            
-            let starsHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                let fillClass = Math.round(currentScore) >= i ? 'filled' : '';
-                starsHTML += `<i class="fas fa-star ${fillClass}" style="color: ${Math.round(currentScore) >= i ? '#f59e0b' : '#e5e7eb'}"></i>`;
-            }
-
             const status = getBookStatus(book);
             let btnClass = '', btnIcon = 'far fa-bookmark';
             if (status === 'want') { btnClass = 'want'; btnIcon = 'fas fa-bookmark'; }
             else if (status === 'reading') { btnClass = 'reading'; btnIcon = 'fas fa-book-reader'; }
             else if (status === 'finished') { btnClass = 'finished'; btnIcon = 'fas fa-check-circle'; }
 
+            const ratingVal = userRatings[book.title] ? userRatings[book.title].score : (book.rating || 0);
+
             card.innerHTML = `
                 <div class="book-status-wrapper">
-                    <button class="btn-status-toggle ${btnClass}" data-id="${book.id}">
-                        <i class="${btnIcon}"></i>
-                    </button>
+                    <button class="btn-status-toggle ${btnClass}"><i class="${btnIcon}"></i></button>
                     <div class="status-dropdown">
-                        <button class="status-option" data-val="want"><i class="fas fa-bookmark"></i> Ingin Dibaca</button>
-                        <button class="status-option" data-val="reading"><i class="fas fa-book-reader"></i> Sedang Dibaca</button>
+                        <button class="status-option" data-val="want"><i class="fas fa-bookmark"></i> Ingin</button>
+                        <button class="status-option" data-val="reading"><i class="fas fa-book-reader"></i> Baca</button>
                         <button class="status-option" data-val="finished"><i class="fas fa-check-circle"></i> Selesai</button>
-                        <button class="status-option" data-val="none"><i class="fas fa-trash-alt"></i> Hapus</button>
+                        <button class="status-option" data-val="none"><i class="fas fa-trash"></i> Hapus</button>
                     </div>
                 </div>
-
-                <img src="${imgSrc}" alt="${book.title}" onerror="this.src='https://via.placeholder.com/300x450?text=Cover'">
+                <img src="${imgSrc}" alt="${book.title}" loading="lazy">
                 <div class="book-info">
                     <span class="tag">${book.category}</span>
                     <h3>${book.title}</h3>
                     <p>${book.author}</p>
                     <div class="card-footer">
-                        <div class="interactive-stars">${starsHTML}</div>
-                        <span class="rating-number">${parseFloat(currentScore).toFixed(1)}</span>
+                        <div class="interactive-stars">${generateStars(ratingVal)}</div>
+                        <span class="rating-number">${parseFloat(ratingVal).toFixed(1)}</span>
                     </div>
                 </div>
             `;
-            
+
             const wrapper = card.querySelector('.book-status-wrapper');
             const toggleBtn = wrapper.querySelector('.btn-status-toggle');
-            const dropdown = wrapper.querySelector('.status-dropdown');
+            const statusDropdown = wrapper.querySelector('.status-dropdown');
 
             toggleBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (!currentUser) return alert('Silakan login terlebih dahulu!');
-                
-                document.querySelectorAll('.status-dropdown').forEach(d => {
-                    if(d !== dropdown) d.classList.remove('active');
-                });
-                dropdown.classList.toggle('active');
+                document.querySelectorAll('.status-dropdown').forEach(d => { if(d!==statusDropdown) d.classList.remove('active'); });
+                statusDropdown.classList.toggle('active');
             });
 
             wrapper.querySelectorAll('.status-option').forEach(opt => {
                 opt.addEventListener('click', (e) => {
                     e.stopPropagation();
                     setBookStatus(book, opt.dataset.val);
-                    dropdown.classList.remove('active');
-                    renderBooks(searchInput.value, document.querySelector('.btn-cat.active').dataset.cat);
+                    statusDropdown.classList.remove('active');
+                    const activeCat = document.querySelector('.btn-cat.active')?.dataset.cat || 'all';
+                    renderBooks(searchInput.value, activeCat);
                 });
             });
 
             card.addEventListener('click', (e) => {
-                if (!e.target.closest('.book-status-wrapper')) openModal(book);
+                if (!e.target.closest('.book-status-wrapper')) {
+                    openModal(book);
+                }
             });
 
             bookGrid.appendChild(card);
         });
     }
 
-    document.addEventListener('click', (e) => {
-        if(!e.target.closest('.book-status-wrapper')) document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('active'));
-    });
-
-    // --- 5. MODAL LOGIC ---
-    const modal = document.getElementById('bookModal');
-    const feedback = document.getElementById('ratingFeedback');
-
+    // --- 5. MODAL & SECURITY (READ) ---
     function openModal(book) {
         if (!modal) return;
-        document.getElementById('modalImg').src = book.img || book.image;
+        
+        const imgEl = document.getElementById('modalImg');
+        if(imgEl) imgEl.src = book.img || book.image || book.cover;
+        
         document.getElementById('modalTitle').innerText = book.title;
         document.getElementById('modalAuthor').innerText = book.author;
-        document.getElementById('modalBadges').innerHTML = `<span class="badge-cat">${book.category}</span>`;
         
+        const badges = document.getElementById('modalBadges');
+        if(badges) badges.innerHTML = `<span class="tag">${book.category}</span>`;
+
         const readBtn = document.getElementById('readBtn');
-        readBtn.onclick = () => {
-            if (book.fileData) {
-                const safeTitle = encodeURIComponent(book.title);
-                const safeSource = encodeURIComponent(book.fileData);
-                window.location.href = `read.html?title=${safeTitle}&source=${safeSource}`;
-            } else if (book.pdf) {
-                const safeTitle = encodeURIComponent(book.title);
-                const safeSource = encodeURIComponent(book.pdf);
-                window.location.href = `read.html?title=${safeTitle}&source=${safeSource}`;
-            } else {
-                alert("File buku tidak ditemukan!");
-            }
-        };
+        if(readBtn) {
+            readBtn.onclick = () => {
+                if (!currentUser) {
+                    if(confirm("Eits! Fitur baca hanya untuk anggota terdaftar. Mau daftar sekarang (Gratis)?")) {
+                        window.location.href = 'signup.html';
+                    }
+                    return;
+                }
 
-        const modalStars = document.querySelectorAll('#modalStars i');
-        const myRating = userRatings[book.title];
-        
-        updateVisualStars(myRating ? myRating.score : 0);
-        if(feedback) feedback.innerText = myRating ? "Rating tersimpan." : "Beri penilaian.";
-
-        modalStars.forEach(star => {
-            star.onclick = function() {
-                if(!currentUser) return alert("Login dulu!");
-                const val = this.dataset.val;
-                userRatings[book.title] = { score: parseFloat(val), date: new Date().toISOString() };
-                localStorage.setItem('userRatings', JSON.stringify(userRatings));
-                updateVisualStars(val);
-                if(feedback) feedback.innerText = "Terima kasih! Rating tersimpan.";
-                renderBooks(searchInput.value, document.querySelector('.btn-cat.active').dataset.cat);
+                const isMobile = window.innerWidth <= 768;
+                const targetPage = isMobile ? 'read-mobile.html' : 'read.html';
+                const source = book.fileData || book.pdf;
+                
+                if (source) {
+                    window.location.href = `${targetPage}?source=${encodeURIComponent(source)}`;
+                } else {
+                    alert("File buku tidak ditemukan!");
+                }
             };
-        });
+        }
 
         modal.classList.add('active');
     }
 
-    function updateVisualStars(val) {
-        document.querySelectorAll('#modalStars i').forEach(s => {
-            s.style.color = val >= parseInt(s.dataset.val) ? '#f59e0b' : '#e5e7eb';
-        });
-    }
+    window.closeModal = () => { if(modal) modal.classList.remove('active'); };
+    window.onclick = (e) => { if (e.target === modal) window.closeModal(); };
 
-    window.closeModal = () => modal.classList.remove('active');
-    if(modal) modal.addEventListener('click', (e) => { if(e.target === modal) window.closeModal(); });
+    // --- Global Listeners ---
+    document.addEventListener('click', (e) => {
+        if(!e.target.closest('.book-status-wrapper')) {
+            document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('active'));
+        }
+    });
 
-    // Initial Render
-    renderBooks();
-    
-    // Listeners
-    if(searchInput) searchInput.addEventListener('input', (e) => renderBooks(e.target.value, document.querySelector('.btn-cat.active').dataset.cat));
-    if(dashboardSort) dashboardSort.addEventListener('change', () => renderBooks(searchInput.value, document.querySelector('.btn-cat.active').dataset.cat));
-    
+    if(searchInput) searchInput.addEventListener('input', (e) => {
+        const cat = document.querySelector('.btn-cat.active')?.dataset.cat || 'all';
+        renderBooks(e.target.value, cat);
+    });
+
+    if(dashboardSort) dashboardSort.addEventListener('change', () => {
+        const cat = document.querySelector('.btn-cat.active')?.dataset.cat || 'all';
+        renderBooks(searchInput.value, cat);
+    });
+
     categoryTabs.forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelector('.btn-cat.active').classList.remove('active');
+            document.querySelectorAll('.btn-cat').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             renderBooks(searchInput.value, btn.dataset.cat);
         });
     });
+
+    // Start
+    renderBooks();
 });
