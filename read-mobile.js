@@ -16,7 +16,7 @@ let textLayerDiv = document.getElementById('text-layer');
 let currentTool = 'move', isDrawing = false, isAnimating = false;
 let annotationData = {}, notesData = {}, undoStack = [], redoStack = [];
 
-// Kunci Penyimpanan Unik (Berdasarkan URL Buku)
+// Kunci Penyimpanan Unik
 let STORAGE_KEY = 'pdf_data_default';
 
 const getDPR = () => window.devicePixelRatio || 1;
@@ -27,9 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const source = params.get('source');
     
     if(source) {
-        // Set Key Unik agar data tiap buku beda
         STORAGE_KEY = 'pdf_data_' + encodeURIComponent(source);
-        loadFromStorage(); // Load data lama
+        loadFromStorage();
         loadBook(decodeURIComponent(source));
     } else { 
         alert("Buku tidak ditemukan."); 
@@ -48,13 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 4. STORAGE MANAGER (AUTO SAVE/LOAD) ---
+// --- 4. STORAGE MANAGER ---
 function saveToStorage() {
-    const data = {
-        annotations: annotationData,
-        notes: notesData
-    };
+    const data = { annotations: annotationData, notes: notesData };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    console.log("Data saved to local storage");
 }
 
 function loadFromStorage() {
@@ -64,9 +61,7 @@ function loadFromStorage() {
             const data = JSON.parse(saved);
             annotationData = data.annotations || {};
             notesData = data.notes || {};
-        } catch (e) {
-            console.error("Gagal load data:", e);
-        }
+        } catch (e) { console.error("Error load data", e); }
     }
 }
 
@@ -97,7 +92,7 @@ function loadBook(url) {
     });
 }
 
-// --- 6. RENDER PAGE ---
+// --- 6. RENDER PAGE (HD + LOGICAL TEXT) ---
 function renderPage(num) {
     return new Promise(resolve => {
         if(!pdfDoc) return;
@@ -115,7 +110,7 @@ function renderPage(num) {
             hCanvas.width = viewportHD.width;
             hCanvas.height = viewportHD.height;
             
-            // Set Ukuran Teks Layer
+            // Set Ukuran Text Layer
             textLayerDiv.style.width = `${viewportLogical.width}px`;
             textLayerDiv.style.height = `${viewportLogical.height}px`;
 
@@ -134,7 +129,7 @@ function renderPage(num) {
 
                 redrawAnnotations(); 
                 document.getElementById('currPage').innerText = num;
-                renderNotes(); // Render catatan yang sudah diload
+                renderNotes();
                 updateThumbActive();
                 updateToolState();
                 
@@ -144,7 +139,7 @@ function renderPage(num) {
     });
 }
 
-// --- 7. UI INTERACTIONS ---
+// --- 7. INTERACTIONS ---
 function changePage(delta) {
     if(isAnimating) return;
     const newNum = pageNum + delta;
@@ -181,7 +176,7 @@ function changeZoom(delta) {
     renderPage(pageNum);
 }
 
-// --- 8. SETUP UI & EVENT LISTENERS ---
+// --- 8. UI HANDLERS ---
 function setupUI() {
     const sheet = document.getElementById('bottomSheet');
     const bg = document.getElementById('backdrop');
@@ -200,17 +195,22 @@ function setupUI() {
 
     ['move', 'highlight', 'eraser'].forEach(t => {
         const id = 'tool' + t.charAt(0).toUpperCase() + t.slice(1);
-        const el = document.getElementById(id);
-        if(!el) return;
-
-        el.onclick = () => {
+        document.getElementById(id).onclick = () => {
             currentTool = t;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
+            document.getElementById(id).classList.add('active');
             updateToolState();
             sheet.classList.remove('active'); bg.classList.remove('active');
         };
     });
+
+    // TOMBOL SIMPAN MANUAL
+    document.getElementById('toolSave').onclick = () => {
+        saveToStorage();
+        alert("Berhasil disimpan!");
+        sheet.classList.remove('active'); 
+        bg.classList.remove('active');
+    };
 
     document.getElementById('toolZoomIn').onclick = () => changeZoom(0.2);
     document.getElementById('toolZoomOut').onclick = () => changeZoom(-0.2);
@@ -222,11 +222,10 @@ function setupUI() {
             saveState(); 
             annotationData[pageNum] = []; 
             redrawAnnotations();
-            saveToStorage(); // Simpan perubahan
+            saveToStorage();
         }
     };
     
-    // TOMBOL TAMBAH CATATAN
     document.getElementById('mobNoteBtn').onclick = () => {
         const v = document.getElementById('mobNoteIn').value;
         if(v) { 
@@ -234,12 +233,12 @@ function setupUI() {
             notesData[pageNum].push(v); 
             document.getElementById('mobNoteIn').value=''; 
             renderNotes(); 
-            saveToStorage(); // Simpan Note ke LocalStorage
+            saveToStorage();
         }
     };
 }
 
-// --- 9. DRAWING LOGIC ---
+// --- 9. DRAWING ---
 function setupDrawing() {
     function getTouchPos(e) {
         const rect = hCanvas.getBoundingClientRect();
@@ -268,7 +267,7 @@ function setupDrawing() {
 
     hCanvas.addEventListener('touchend', () => {
         isDrawing = false;
-        saveToStorage(); // Simpan Coretan ke LocalStorage setiap selesai menggambar
+        saveToStorage();
     });
 }
 
@@ -324,7 +323,7 @@ function undo() {
         redoStack.push(JSON.parse(JSON.stringify(annotationData))); 
         annotationData=undoStack.pop(); 
         redrawAnnotations(); 
-        saveToStorage(); // Simpan status baru
+        saveToStorage();
     } 
 }
 
@@ -333,7 +332,7 @@ function redo() {
         undoStack.push(JSON.parse(JSON.stringify(annotationData))); 
         annotationData=redoStack.pop(); 
         redrawAnnotations(); 
-        saveToStorage(); // Simpan status baru
+        saveToStorage();
     } 
 }
 
@@ -378,27 +377,21 @@ function renderNotes() {
             item.style.justifyContent = 'space-between';
             item.innerHTML = `
                 <div style="flex:1; padding-right:10px;">
-                    <div style="font-size:0.75rem; color:#f59e0b; font-weight:bold; margin-bottom:2px;">
-                        Halaman ${pNum}
-                    </div>
+                    <div style="font-size:0.75rem; color:#f59e0b; font-weight:bold;">Hal ${pNum}</div>
                     <div style="word-break:break-word;">${note}</div>
                 </div>
-                <div onclick="deleteNote(${pNum}, ${idx})" 
-                     style="color:#ef4444; cursor:pointer; font-size:1.2rem; padding:0 5px;">
-                    &times;
-                </div>
+                <div onclick="deleteNote(${pNum}, ${idx})" style="color:#ef4444;cursor:pointer;font-size:1.2rem;">&times;</div>
             `;
             list.appendChild(item);
         });
     });
 }
 
-// Global function untuk hapus note & save
 window.deleteNote = function(pNum, idx) {
     if(confirm('Hapus catatan ini?')) {
         notesData[pNum].splice(idx, 1);
         if(notesData[pNum].length === 0) delete notesData[pNum];
         renderNotes();
-        saveToStorage(); // Simpan perubahan setelah hapus
+        saveToStorage();
     }
 };
