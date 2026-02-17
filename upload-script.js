@@ -1,5 +1,9 @@
+// ...existing code...
 document.addEventListener('DOMContentLoaded', () => {
-    
+
+    // simple notification replacement (no toast.js)
+    function notify(msg) { alert(msg); }
+
     // --- 0. CEK LOGIN (PENTING) ---
     const currentUser = localStorage.getItem('currentUser');
     if (!currentUser) {
@@ -29,6 +33,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 2. LOGIKA UPLOAD ---
     const uploadForm = document.getElementById('uploadForm');
+    if (!uploadForm) return;
+
+    // NEW: cover preview + basic URL validation helpers
+    const coverInput = document.getElementById('bookCover');
+    const coverPreviewWrap = document.getElementById('coverPreviewWrap');
+    const coverPreviewImg = document.getElementById('coverPreviewImg');
+
+    function isHttpUrl(s) {
+        try {
+            const u = new URL(String(s || ''));
+            return u.protocol === 'http:' || u.protocol === 'https:';
+        } catch { return false; }
+    }
+    function looksLikePdfUrl(s) {
+        try {
+            const u = new URL(String(s || ''));
+            return (u.pathname || '').toLowerCase().endsWith('.pdf');
+        } catch { return false; }
+    }
+
+    if (coverInput && coverPreviewWrap && coverPreviewImg) {
+        coverInput.addEventListener('input', () => {
+            const v = coverInput.value.trim();
+            if (!v || !isHttpUrl(v)) { coverPreviewWrap.style.display = 'none'; return; }
+            coverPreviewImg.src = v;
+            coverPreviewWrap.style.display = '';
+            coverPreviewImg.onerror = () => { coverPreviewWrap.style.display = 'none'; };
+        });
+    }
 
     uploadForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -46,9 +79,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // NEW: validate URLs
+        if (!isHttpUrl(cover)) {
+            alert("Link cover tidak valid. Gunakan URL http/https.");
+            return;
+        }
+        if (!isHttpUrl(file)) {
+            alert("Link file PDF tidak valid. Gunakan URL http/https.");
+            return;
+        }
+        if (!looksLikePdfUrl(file)) {
+            alert("Link file harus berakhiran .pdf");
+            return;
+        }
+
         // Buat Object Buku Baru
         const newBook = {
-            id: 'U-' + Date.now(), // ID Unik berdasarkan waktu
+            id: 'U-' + Date.now(),
             title: title,
             author: author,
             category: category,
@@ -58,18 +105,18 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedAt: new Date().toISOString()
         };
 
-        // Simpan ke LocalStorage ('myUploadedBooks')
+        // Simpan global (untuk dashboard) dan juga per-user (untuk profil)
         const existingBooks = JSON.parse(localStorage.getItem('myUploadedBooks') || '[]');
         existingBooks.push(newBook);
         localStorage.setItem('myUploadedBooks', JSON.stringify(existingBooks));
+        const userUploadsKey = `uploads_${currentUser}`;
+        const userUploads = JSON.parse(localStorage.getItem(userUploadsKey) || '[]');
+        userUploads.push(newBook);
+        localStorage.setItem(userUploadsKey, JSON.stringify(userUploads));
 
-        // Feedback & Redirect
-        alert("Buku berhasil diupload! Terima kasih kontribusinya.");
-        
-        // Bersihkan Form
+        notify("Buku berhasil diupload! Terima kasih kontribusinya.");
         uploadForm.reset();
-
-        // Arahkan ke Profil agar user bisa melihat bukunya
-        window.location.href = 'profile.html';
+        setTimeout(() => window.location.href = 'profile.html', 700);
     });
 });
+// ...existing code...

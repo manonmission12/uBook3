@@ -2,8 +2,8 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Reader HD</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>uBook Reader (Mobile)</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.min.css">
@@ -14,14 +14,41 @@
 <body>
 
     <nav class="mobile-nav">
-        <a href="index.html" class="nav-icon"><i class="fas fa-arrow-left"></i></a>
+        <!-- ADDED: back to home -->
+        <a href="index.html" class="nav-icon" aria-label="Beranda" title="Beranda">
+            <i class="fas fa-house"></i>
+        </a>
+
+        <button id="btnMenu" class="nav-icon" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+
         <div class="page-indicator">
-            <span id="currPage">1</span> / <span id="totalPage">--</span>
+            <span id="currPage">1</span>/<span id="totalPage">--</span>
         </div>
-        <button id="btnMenu" class="nav-icon"><i class="fas fa-bars"></i></button>
+
+        <!-- Tambahkan di dalam navbar .mobile-nav (disarankan di tengah) -->
+        <div class="zoom-control" id="mobZoomControl" aria-label="Kontrol Zoom">
+            <button class="nav-icon" id="mobZoomOutBtn" type="button" aria-label="Zoom Out">−</button>
+            <div class="zoom-level" id="mobZoomLevel" aria-live="polite">100%</div>
+            <button class="nav-icon" id="mobZoomInBtn" type="button" aria-label="Zoom In">+</button>
+        </div>
+
+        <div class="nav-right-actions">
+            <!-- ADDED: quick scroll toggle button -->
+            <button id="scrollMobBtnTop" class="nav-icon" aria-label="Scroll Mode" title="Scroll Mode">
+                <i class="fas fa-scroll"></i>
+            </button>
+
+            <button id="rotateMobBtn" class="nav-icon rotate" aria-label="Rotate">
+                <i class="fas fa-rotate-right"></i>
+            </button>
+        </div>
     </nav>
 
     <main id="readerArea">
+        <!-- progress bar -->
+        <div id="mPageProgress" class="m-page-progress" aria-hidden="true"></div>
         <div id="pdfWrapper">
             <canvas id="the-canvas"></canvas>
             
@@ -29,52 +56,77 @@
             
             <canvas id="highlight-canvas"></canvas>
         </div>
+        <!-- kontainer stack untuk mode scroll -->
+        <div id="mobScrollStack" style="display:none;"></div>
     </main>
 
-    <div id="bottomSheet" class="bottom-sheet">
-        <div class="drag-handle"></div>
+    <div id="backdrop"></div>
+
+    <section id="bottomSheet" class="bottom-sheet" aria-label="Panel">
+        <div class="drag-handle" aria-hidden="true"></div>
+
         <div class="sheet-tabs">
-            <button class="tab-btn active" data-target="tools">Alat</button>
-            <button class="tab-btn" data-target="pages">Hal</button>
-            <button class="tab-btn" data-target="notes">Note</button>
+            <button class="tab-btn active" data-target="tools">Tools</button>
+            <button class="tab-btn" data-target="thumbs">Halaman</button>
+            <button class="tab-btn" data-target="bookmarks">Bookmarks</button>
+            <button class="tab-btn" data-target="notes">Catatan</button>
         </div>
-        
+
         <div class="sheet-body">
             <div id="panel-tools" class="tab-panel active">
                 <div class="tools-grid">
-                    <button class="tool-btn active" id="toolMove"><i class="fas fa-hand-pointer"></i> Geser/Teks</button>
-                    <button class="tool-btn" id="toolHighlight"><i class="fas fa-highlighter"></i> Stabilo</button>
-                    <button class="tool-btn" id="toolEraser"><i class="fas fa-eraser"></i> Hapus</button>
-                    
-                    <button class="tool-btn" id="toolZoomIn"><i class="fas fa-search-plus"></i> Zoom +</button>
-                    <button class="tool-btn" id="toolZoomOut"><i class="fas fa-search-minus"></i> Zoom -</button>
-                    
-                    <button class="tool-btn" id="toolUndo"><i class="fas fa-undo"></i> Undo</button>
-                    <button class="tool-btn" id="toolRedo"><i class="fas fa-redo"></i> Redo</button>
-                    
-                    <button class="tool-btn" id="toolSave" style="color:#10b981; border-color:#10b981;">
-                        <i class="fas fa-save"></i> Simpan
-                    </button>
-                    
-                    <button class="tool-btn warn" id="toolClear"><i class="fas fa-trash"></i> Bersih</button>
+                    <button id="toolZoomOut" class="tool-btn"><i class="fas fa-minus"></i><span>Zoom-</span></button>
+                    <button id="toolZoomIn" class="tool-btn"><i class="fas fa-plus"></i><span>Zoom+</span></button>
+                    <button id="scrollMobBtn" class="tool-btn"><i class="fas fa-scroll"></i><span>Scroll</span></button>
+                    <button id="toolBookmark" class="tool-btn"><i class="fas fa-bookmark"></i><span>BM</span></button>
+
+                    <button id="toolMove" class="tool-btn active"><i class="fas fa-hand"></i><span>Move</span></button>
+                    <button id="toolHighlight" class="tool-btn"><i class="fas fa-highlighter"></i><span>Stabilo</span></button>
+                    <button id="toolEraser" class="tool-btn"><i class="fas fa-eraser"></i><span>Hapus</span></button>
+                    <button id="toolClear" class="tool-btn warn"><i class="fas fa-trash"></i><span>Clear</span></button>
+
+                    <button id="toolUndo" class="tool-btn"><i class="fas fa-undo"></i><span>Undo</span></button>
+                    <button id="toolRedo" class="tool-btn"><i class="fas fa-redo"></i><span>Redo</span></button>
+                    <button id="toolSave" class="tool-btn"><i class="fas fa-save"></i><span>Save</span></button>
+                    <button id="mobExportAnn" class="tool-btn"><i class="fas fa-file-export"></i><span>Export</span></button>
+
+                    <button id="mobImportAnn" class="tool-btn"><i class="fas fa-file-import"></i><span>Import</span></button>
+                    <input id="mobImportAnnFile" type="file" accept="application/json" style="display:none" />
+                </div>
+
+                <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
+                    <label for="mobHighlightColor" style="min-width:70px;">Warna</label>
+                    <input id="mobHighlightColor" type="color" value="#fff275" />
+                    <span class="mob-highlight-preview" aria-hidden="true"></span>
+                </div>
+
+                <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+                    <label for="mobHighlightSize" style="min-width:70px;">Ukuran</label>
+                    <input id="mobHighlightSize" type="range" min="8" max="80" value="24" />
                 </div>
             </div>
 
-            <div id="panel-pages" class="tab-panel"><div id="thumbGrid" class="thumb-grid"></div></div>
+            <div id="panel-thumbs" class="tab-panel">
+                <div id="thumbGrid" class="thumb-grid"></div>
+            </div>
+
+            <div id="panel-bookmarks" class="tab-panel">
+                <div id="mobBookmarkList"></div>
+            </div>
+
             <div id="panel-notes" class="tab-panel">
                 <div class="note-input-area">
-                    <input id="mobNoteIn" type="text" placeholder="Catatan...">
-                    <button id="mobNoteBtn"><i class="fas fa-paper-plane"></i></button>
+                    <input id="mobNoteIn" placeholder="Tulis catatan..." />
+                    <button id="mobNoteBtn">+</button>
                 </div>
                 <div id="mobNoteList"></div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div id="backdrop"></div>
     <div id="loading" class="active">
         <div class="spinner"></div>
-        <p style="color:white; margin-top:10px;">Sedang Memuat...</p>
+        <p style="margin-top:10px;">Sedang Memuat...</p>
     </div>
 
     <script src="read-mobile.js" defer></script>
