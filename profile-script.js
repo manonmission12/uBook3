@@ -1,137 +1,230 @@
+// Profile page script: avatar, lists, readingHistory migration, theme, logout, delete-account.
+
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // --- DATA BUKU SOURCE (Agar profil bisa mengenali buku dari judul) ---
-    const defaultBooks = [
-        { id: "B1", title: "Filosofi Teras", category: "Filsafat", img: "covers/filosofi teras.png", pdf: "books/1. Filosofi Teras.pdf" },
-        { id: "B2", title: "This is Marketing", category: "Bisnis", img: "covers/this is marketing.png", pdf: "books/2. This is marketing.pdf" },
-        { id: "B3", title: "Atomic Habits", category: "Self-Improvement", img: "covers/atomic habits.png", pdf: "books/3. Atomic Habits.pdf" },
-        { id: "B4", title: "Psychology of Money", category: "Self-Improvement", img: "covers/the psychology of money.png", pdf: "books/4. The Psychology of Money.pdf" },
-        { id: "B5", title: "Citizen 4.0", category: "Bisnis", img: "covers/citizen 4.0.png", pdf: "books/5. Citizen 4.0.pdf" },
-        { id: "B6", title: "Find Your Why", category: "Self-Improvement", img: "covers/find your why.png", pdf: "books/6. Find your why.pdf" },
-        { id: "B7", title: "How To Win Friends", category: "Self-Improvement", img: "covers/how to win friends&influence people.png", pdf: "books/7. How to win friend & influence people.pdf" },
-        { id: "B8", title: "Marketing 4.0", category: "Bisnis", img: "covers/marketing 4.0.png", pdf: "books/8. Marketing 4.0.pdf" },
-        { id: "B9", title: "Marketing in Crisis", category: "Bisnis", img: "covers/marketing in crisis.png", pdf: "books/9. Marketing in Crisis.pdf" },
-        { id: "B10", title: "Mindset", category: "Self-Improvement", img: "covers/mindset.png", pdf: "books/10. Mindset.pdf" },
-        { id: "B11", title: "Bodo Amat", category: "Self-Improvement", img: "covers/sebuah seni untuk bersikap bodo amat.png", pdf: "books/11. Sebuah Seni untuk Bersikap Bodo Amat.pdf" },
-        { id: "B12", title: "Thinking, Fast & Slow", category: "Self-Improvement", img: "covers/thinking fast and slow.png", pdf: "books/12. Thinking, fast and slow.pdf" },
-        { id: "B13", title: "Grit", category: "Self-Improvement", img: "covers/grit.png", pdf: "books/grit.pdf" },
-        { id: "B14", title: "Show Your Work", category: "Self-Improvement", img: "covers/Show Your Work.png", pdf: "books/14. Show your work.pdf" },
-        { id: "B15", title: "Intelligent Investor", category: "Bisnis", img: "covers/the intelligent investor.png", pdf: "books/15. The Intelligent Investor.pdf" },
-        { id: "B16", title: "Think Like a Freak", category: "Self-Improvement", img: "covers/think like a freak.png", pdf: "books/16. Think like a freak.pdf" }
-    ];
-    let uploadedBooksSource = JSON.parse(localStorage.getItem('myUploadedBooks') || '[]');
-    let allBooksSource = [...uploadedBooksSource, ...defaultBooks]; 
+	// --- helpers ---
+	const safeParse = (key, fallback) => {
+		try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
+		catch { return fallback; }
+	};
+	const saveJson = (key, value) => {
+		try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+	};
+	const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
+		'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+	}[c]));
 
-    // --- SETUP PROFIL ---
-    const currentUser = localStorage.getItem('currentUser');
-    if (!currentUser) { window.location.href = 'login.html'; return; }
+	// --- auth guard ---
+	const currentUser = localStorage.getItem('currentUser');
+	if (!currentUser) { window.location.href = 'login.html'; return; }
 
-    document.getElementById('displayName').innerText = currentUser;
-    
-    const savedAvatar = localStorage.getItem(`avatar_${currentUser}`);
-    const avatarDisplay = document.getElementById('profileAvatarDisplay');
-    if (savedAvatar) { avatarDisplay.innerHTML = `<img src="${savedAvatar}" alt="Avatar">`; }
+	// --- theme ---
+	const root = document.documentElement;
+	const themeBtn = document.getElementById('themeToggle');
+	const themeIcon = themeBtn ? themeBtn.querySelector('i') : null;
+	const applyTheme = (t) => {
+		root.setAttribute('data-theme', t);
+		localStorage.setItem('theme', t);
+		if (themeIcon) themeIcon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+	};
+	applyTheme(localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
+	themeBtn && themeBtn.addEventListener('click', () => applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
 
-    const avatarInput = document.getElementById('avatarInput');
-    avatarInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const result = e.target.result;
-                try {
-                    localStorage.setItem(`avatar_${currentUser}`, result);
-                    avatarDisplay.innerHTML = `<img src="${result}" alt="Avatar">`;
-                    alert("Foto profil diperbarui!");
-                } catch (err) { alert("Gambar terlalu besar! Gunakan ukuran lebih kecil."); }
-            }
-            reader.readAsDataURL(file);
-        }
-    });
+	// --- user name text ---
+	const userDisplay = document.getElementById('userDisplay');
+	const profileName = document.getElementById('profileName');
+	if (userDisplay) userDisplay.textContent = `Halo, ${currentUser}`;
+	if (profileName) profileName.textContent = currentUser;
 
-    // --- RENDER SECTION BUKU ---
-    
-    // 1. Upload Saya
-    document.getElementById('statUploads').innerText = uploadedBooksSource.length;
-    renderList('userBookGrid', uploadedBooksSource.reverse(), "Kamu belum mengupload buku.");
+	// --- avatar (top-right + left card) ---
+	const savedAvatarKey = `avatar_${currentUser}`;
+	const savedAvatar = localStorage.getItem(savedAvatarKey);
+	const defaultAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser)}&background=random&color=fff`;
+	const avatarUrl = savedAvatar || defaultAvatarUrl;
 
-    // 2. Disimpan (Favorit)
-    const savedBooks = JSON.parse(localStorage.getItem(`savedBooks_${currentUser}`) || '[]');
-    document.getElementById('statSaved').innerText = savedBooks.length;
-    renderList('savedBookGrid', savedBooks, "Belum ada buku yang disimpan.");
+	const triggerAvatar = document.querySelector('.profile-trigger .avatar');
+	if (triggerAvatar) triggerAvatar.src = avatarUrl;
 
-    // 3. Riwayat Baca (Sedang & Selesai)
-    const readingHistory = JSON.parse(localStorage.getItem(`readingHistory_${currentUser}`) || '{}');
-    
-    // Filter buku berdasarkan status di history
-    const readingList = [];
-    const finishedList = [];
+	const avatarLarge = document.getElementById('avatarLarge');
+	if (avatarLarge) {
+		if (savedAvatar) avatarLarge.innerHTML = `<img alt="Avatar" src="${savedAvatar}">`;
+		else avatarLarge.textContent = (currentUser || 'U').slice(0, 1).toUpperCase();
+	}
 
-    // Loop semua judul di history
-    Object.keys(readingHistory).forEach(title => {
-        const status = readingHistory[title];
-        // Cari data buku lengkap dari allBooksSource
-        const bookData = allBooksSource.find(b => b.title === title);
-        
-        if (bookData) {
-            if (status === 'reading') readingList.push(bookData);
-            else if (status === 'finished') finishedList.push(bookData);
-        }
-    });
+	// avatar upload button
+	const btnEdit = document.getElementById('btnEditPhoto');
+	const fileIn = document.getElementById('avatarFile');
+	btnEdit && fileIn && btnEdit.addEventListener('click', () => fileIn.click());
+	fileIn && fileIn.addEventListener('change', () => {
+		const f = fileIn.files && fileIn.files[0];
+		if (!f) return;
+		if (!f.type || !f.type.startsWith('image/')) return;
 
-    renderList('readingSection', readingList, "Tidak ada buku yang sedang dibaca.");
-    renderList('finishedSection', finishedList, "Belum ada buku yang selesai dibaca.");
+		const r = new FileReader();
+		r.onload = () => {
+			try {
+				localStorage.setItem(savedAvatarKey, String(r.result || ''));
+				// refresh avatar UI quickly
+				location.reload();
+			} catch { /* ignore */ }
+		};
+		r.readAsDataURL(f);
+		fileIn.value = '';
+	});
 
+	// --- dropdown profile menu ---
+	const trigger = document.getElementById('profileTrigger');
+	const dd = document.getElementById('profileDropdown');
+	if (trigger && dd) {
+		const close = () => dd.classList.remove('active');
+		trigger.addEventListener('click', (e) => { e.stopPropagation(); dd.classList.toggle('active'); });
+		document.addEventListener('click', (e) => {
+			if (!trigger.contains(e.target) && !dd.contains(e.target)) close();
+		});
+	}
 
-    // FUNGSI RENDER UMUM
-    function renderList(elementId, booksArray, emptyMessage) {
-        const grid = document.getElementById(elementId);
-        grid.innerHTML = '';
+	// --- logout ---
+	const doLogout = () => {
+		if (!confirm('Yakin ingin keluar?')) return;
+		try { localStorage.removeItem('currentUser'); } catch { /* ignore */ }
+		window.location.href = 'login.html';
+	};
+	const logoutBtn = document.getElementById('logoutBtn');
+	const logoutBtnBig = document.getElementById('logoutBtnBig');
+	logoutBtn && logoutBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); doLogout(); });
+	logoutBtnBig && logoutBtnBig.addEventListener('click', doLogout);
 
-        if (booksArray.length > 0) {
-            booksArray.forEach(book => {
-                const card = document.createElement('div');
-                card.className = 'mini-book-card';
-                card.onclick = () => {
-                    // Update status jadi reading lagi kalau diklik (opsional, biar jadi last read)
-                    const history = JSON.parse(localStorage.getItem(`readingHistory_${currentUser}`) || '{}');
-                    if (history[book.title] !== 'finished') {
-                        history[book.title] = 'reading';
-                        localStorage.setItem(`readingHistory_${currentUser}`, JSON.stringify(history));
-                    }
+	// --- data sources (KONSISTEN) ---
+	// koleksi: savedBooks_<user> (array of book objects)
+	const savedBooks = safeParse(`savedBooks_${currentUser}`, []);
+	// uploads: uploads_<user> (preferred) + fallback from global myUploadedBooks
+	const uploadsPerUser = safeParse(`uploads_${currentUser}`, []);
+	const myUploadedBooks = safeParse('myUploadedBooks', []);
+	const uploadsFromGlobal = Array.isArray(myUploadedBooks)
+		? myUploadedBooks.filter(b => b && b.uploadedBy === currentUser)
+		: [];
 
-                    const safeTitle = encodeURIComponent(book.title);
-                    const safeSource = encodeURIComponent(book.pdf || book.file || '');
-                    window.location.href = `read.html?title=${safeTitle}&source=${safeSource}`;
-                };
+	// merge uploads (unique by id)
+	const uploadsMap = new Map();
+	[...(Array.isArray(uploadsPerUser) ? uploadsPerUser : []), ...uploadsFromGlobal].forEach(b => {
+		if (!b || !b.id) return;
+		if (!uploadsMap.has(String(b.id))) uploadsMap.set(String(b.id), b);
+	});
+	const uploads = Array.from(uploadsMap.values());
 
-                card.innerHTML = `
-                    <img src="${book.img || book.image || book.cover}" alt="${book.title}" onerror="this.src='https://via.placeholder.com/150'">
-                    <div class="mini-info">
-                        <h4>${book.title}</h4>
-                        <p>${book.category}</p>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        } else {
-            grid.innerHTML = `<p class="empty-msg">${emptyMessage}</p>`;
-        }
-    }
+	// --- stats ---
+	const statUploads = document.getElementById('statUploads');
+	const statSaved = document.getElementById('statSaved');
+	if (statUploads) statUploads.textContent = String(Array.isArray(uploads) ? uploads.length : 0);
+	if (statSaved) statSaved.textContent = String(Array.isArray(savedBooks) ? savedBooks.length : 0);
 
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        if(confirm('Keluar akun?')) {
-            localStorage.removeItem('currentUser');
-            window.location.href = 'login.html';
-        }
-    });
+	// --- render cards ---
+	const cardHtml = (book) => {
+		const title = book && book.title ? book.title : 'Untitled';
+		const author = book && book.author ? book.author : '';
+		const img = book && (book.img || book.image || book.cover) ? (book.img || book.image || book.cover) : 'https://via.placeholder.com/300x450?text=Cover';
+		return `
+			<div class="mini-book-card" tabindex="0" role="button">
+				<img src="${img}" alt="${escapeHtml(title)}" loading="lazy" />
+				<div class="mini-info">
+					<h4 title="${escapeHtml(title)}">${escapeHtml(title)}</h4>
+					<p>${escapeHtml(author)}</p>
+				</div>
+			</div>
+		`;
+	};
 
-    const themeToggle = document.getElementById('themeToggle');
-    const root = document.documentElement;
-    root.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
-    if(themeToggle) themeToggle.addEventListener('click', () => {
-        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        root.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-    });
+	const savedGrid = document.getElementById('savedGrid');
+	const uploadsGrid = document.getElementById('uploadsGrid');
+	const savedEmpty = document.getElementById('savedEmpty');
+	const uploadsEmpty = document.getElementById('uploadsEmpty');
+
+	// koleksi
+	if (savedGrid) {
+		const arr = Array.isArray(savedBooks) ? savedBooks : [];
+		if (arr.length) {
+			savedGrid.innerHTML = arr.map(cardHtml).join('');
+			if (savedEmpty) savedEmpty.style.display = 'none';
+		} else {
+			savedGrid.innerHTML = '';
+			if (savedEmpty) savedEmpty.style.display = '';
+		}
+	}
+
+	// uploads
+	if (uploadsGrid) {
+		if (uploads.length) {
+			uploadsGrid.innerHTML = uploads.slice().reverse().map(cardHtml).join('');
+			if (uploadsEmpty) uploadsEmpty.style.display = 'none';
+		} else {
+			uploadsGrid.innerHTML = '';
+			if (uploadsEmpty) uploadsEmpty.style.display = '';
+		}
+	}
+
+	// OPTIONAL: click card -> open reader (kalau pdf ada)
+	function wireOpenHandlers(host, booksArr) {
+		if (!host || !Array.isArray(booksArr)) return;
+		const cards = Array.from(host.querySelectorAll('.mini-book-card'));
+		cards.forEach((el, i) => {
+			const book = booksArr[i];
+			if (!book) return;
+			const open = () => {
+				const src = book.pdf || book.file;
+				if (!src) return;
+				const safeTitle = encodeURIComponent(book.title || '');
+				const safeSource = encodeURIComponent(src);
+				window.location.href = `read.html?title=${safeTitle}&source=${safeSource}`;
+			};
+			el.addEventListener('click', open);
+			el.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
+		});
+	}
+	wireOpenHandlers(savedGrid, Array.isArray(savedBooks) ? savedBooks : []);
+	wireOpenHandlers(uploadsGrid, uploads.slice().reverse());
+
+	// === NEW: Delete Account ===
+	const deleteBtn = document.getElementById('deleteAccountBtn');
+	if (deleteBtn && currentUser) {
+		deleteBtn.addEventListener('click', () => {
+			const confirmText = prompt(
+				'PERINGATAN: Semua data akan dihapus permanen.\n\n' +
+				'Ketik username kamu untuk konfirmasi:'
+			);
+			if (confirmText !== currentUser) {
+				if (confirmText !== null) toast ? toast('Username tidak cocok.', 'error') : alert('Username tidak cocok.');
+				return;
+			}
+
+			// hapus semua data user
+			const keysToRemove = [];
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key && (
+					key === 'currentUser' ||
+					key.includes(currentUser) ||
+					key.startsWith(`avatar_${currentUser}`) ||
+					key.startsWith(`savedBooks_${currentUser}`) ||
+					key.startsWith(`readingHistory_${currentUser}`) ||
+					key.startsWith(`uploads_${currentUser}`)
+				)) {
+					keysToRemove.push(key);
+				}
+			}
+
+			// hapus user dari users array
+			try {
+				const users = JSON.parse(localStorage.getItem('users') || '[]');
+				const filtered = users.filter(u => u && u.username !== currentUser);
+				localStorage.setItem('users', JSON.stringify(filtered));
+			} catch { /* ignore */ }
+
+			// hapus keys
+			keysToRemove.forEach(k => {
+				try { localStorage.removeItem(k); } catch { /* ignore */ }
+			});
+
+			if (typeof toast === 'function') toast('Akun dihapus.', 'success');
+			setTimeout(() => { window.location.href = 'signup.html'; }, 800);
+		});
+	}
 });

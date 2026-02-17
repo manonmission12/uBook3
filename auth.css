@@ -1,178 +1,250 @@
-/* auth.css - Style Khusus Halaman Login & Signup */
+/* auth.css - Style Khusus Halaman Login & Signup (fixed) */
 
-/* Pastikan body rata tengah */
-body {
+:root{
+    --auth-accent:#059669;
+    --auth-danger:#ef4444;
+}
+
+/* IMPORTANT:
+   Jangan paksa body jadi "center flex" karena ada navbar di atas.
+   Centering dilakukan di .auth-wrap. */
+body{
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background-color: var(--bg-body);
-    position: relative; /* Untuk posisi tombol tema */
+    position: relative;
+    display: block;
+    margin: 0;
 }
 
-/* Container Utama */
-.auth-container {
-    width: 100%;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+/* --- NAV helpers untuk halaman auth (signup/login) --- */
+/* REMOVED: .navbar .nav-brand dan .navbar .nav-actions
+   Navbar auth sekarang pakai struktur global (.nav-container + .brand + .nav-right) */
+
+/* --- NEW STRUCTURE (dipakai signup.html kamu) --- */
+.auth-wrap{
+    min-height: calc(100vh - 64px); /* approx height navbar */
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:30px 5%;
 }
 
-/* Kartu Putih/Gelap di Tengah */
-.auth-card {
+.auth-card{
+    width:min(480px, 100%);
     background: var(--bg-card);
-    width: 100%;
-    max-width: 400px;
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    border: 1px solid var(--border);
-    text-align: center;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border:1px solid var(--border);
+    border-radius:24px;
+    padding:32px;
+    box-shadow:var(--shadow);
+    animation: authIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
 }
 
-.auth-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+@keyframes authIn {
+    from { opacity:0; transform:translateY(16px) scale(0.97); }
+    to { opacity:1; transform:translateY(0) scale(1); }
 }
 
-/* Header (Logo & Judul) */
-.auth-header { margin-bottom: 30px; }
+.auth-head{
+    text-align:center;
+    margin-bottom:24px;
+}
+.auth-head .logo{
+    width:56px;
+    height:56px;
+    border-radius:16px;
+    background: linear-gradient(135deg, var(--auth-accent), #10b981);
+    color:#fff;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    box-shadow:0 8px 24px rgba(5,150,105,.2);
+}
+.auth-title{
+    margin:14px 0 6px;
+    font-size:1.5rem;
+    font-weight:900;
+    color: var(--text-primary);
+    letter-spacing:-0.3px;
+}
+.auth-sub{
+    margin:0;
+    color:var(--text-tertiary);
+    font-weight:600;
+    font-size:0.9rem;
+}
 
-.auth-header h1 {
+.auth-form{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.auth-field label{
+    display:block;
+    margin-bottom:6px;
+    font-weight:700;
+    font-size:0.88rem;
+    color:var(--text-secondary);
+}
+
+.auth-input{
+    position:relative;
+    display:flex;
+    align-items:center;
+    border-radius:14px;
+    border:1.5px solid var(--border);
+    background:var(--bg-input);
+    padding:11px 14px;
+    transition: all 0.18s ease;
+}
+.auth-input i{
+    position:absolute;
+    left:14px;
+    color:var(--text-tertiary);
+    font-size:0.9rem;
+}
+.auth-input input{
+    width:100%;
+    border:none;
+    outline:none;
+    background:transparent;
+    color:var(--text-primary);
+    padding-left:32px;
+    font-weight:600;
+    font-size:0.92rem;
+}
+
+.auth-input:focus-within{
+    border-color: var(--auth-accent);
+    background: var(--bg-card);
+    box-shadow: 0 0 0 3px rgba(5,150,105,0.1);
+}
+
+.auth-actions{ margin-top:4px; }
+
+.auth-btn{
+    width:100%;
+    padding:12px 14px;
+    border-radius:14px;
+    border:none;
+    background: linear-gradient(135deg, var(--auth-accent), #10b981);
+    color:#fff;
+    font-weight:800;
+    font-size:0.92rem;
+    cursor:pointer;
+    box-shadow:0 6px 20px rgba(5,150,105,.18);
+    transition: all 0.15s ease;
+    letter-spacing:-0.1px;
+}
+.auth-btn:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+.auth-btn:active{ transform:scale(0.98); }
+
+.auth-links{
+    margin-top:16px;
+    display:flex;
+    gap:6px;
+    justify-content:center;
+    align-items:center;
+    color:var(--text-tertiary);
+    font-weight:600;
+    font-size:0.88rem;
+}
+.auth-links a{
+    color: var(--brand-2);
+    font-weight:800;
+    text-decoration:none;
+}
+.auth-links a:hover{ text-decoration:underline; }
+
+/* --- BACKCOMPAT: struktur lama (kalau login.html lama masih pakai ini) --- */
+.auth-container{
+    width:100%;
+    padding:20px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.auth-header{ margin-bottom: 30px; text-align:center; }
+.auth-header h1{
     font-size: 1.8rem;
     margin-bottom: 10px;
     color: var(--text-primary);
     font-weight: 700;
 }
-
-.auth-header p {
+.auth-header p{
     color: var(--text-secondary);
     font-size: 0.95rem;
 }
 
-.logo-icon {
-    width: 50px; height: 50px;
-    background: var(--text-primary);
-    color: var(--bg-card);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem;
-    margin: 0 auto 20px;
+/* form-group/input-wrapper lama */
+.form-group{ margin-bottom: 20px; text-align:left; }
+.form-group label{
+    display:block;
+    margin-bottom:8px;
+    font-weight:600;
+    font-size:.9rem;
+    color:var(--text-primary);
 }
-
-/* Form Input */
-.form-group {
-    margin-bottom: 20px;
-    text-align: left;
+.input-wrapper{ position:relative; }
+.input-icon{
+    position:absolute;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+    color:var(--text-tertiary);
+    transition:.3s;
 }
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-primary);
+.form-group input{
+    width:100%;
+    padding:12px 12px 12px 45px;
+    border:2px solid var(--border);
+    border-radius:10px;
+    background:var(--bg-input);
+    color:var(--text-primary);
+    font-size:1rem;
+    outline:none;
+    transition:all .2s;
 }
-
-.input-wrapper { position: relative; }
-
-.input-icon {
-    position: absolute;
-    left: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-tertiary);
-    transition: 0.3s;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 12px 12px 12px 45px; /* Padding kiri lebih besar untuk ikon */
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 1rem;
-    outline: none;
-    transition: all 0.3s;
-    box-sizing: border-box;
-}
-
-.form-group input:focus {
-    border-color: #3b82f6; /* Warna biru saat aktif */
+.form-group input:focus{
+    border-color: var(--brand-2);
     background: var(--bg-card);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.08);
+}
+.form-group input:focus + .input-icon{ color: var (--brand-2); }
+
+.btn-block{
+    width:100%;
+    padding:14px 18px;
+    border-radius:999px;
+    border:none;
+    background:#0f172a;
+    color:#fff;
+    font-weight:800;
+    cursor:pointer;
+    transition:all .15s ease;
+}
+.btn-block:hover{
+    transform: translateY(-1px);
+}
+[data-theme="dark"] .btn-block{
+    background:#e5e7eb;
+    color:#0f172a;
 }
 
-.form-group input:focus + .input-icon {
-    color: #3b82f6;
+.auth-footer{
+    margin-top:25px;
+    font-size:.9rem;
+    color:var(--text-secondary);
+    text-align:center;
 }
-
-/* Tombol Full Width */
-.btn-block {
-    width: 100%;
-    padding: 14px;
-    background: #111827; /* Hitam di light mode */
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: 0.3s;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
+.auth-footer a{
+    color: var(--brand-2);
+    font-weight:700;
+    text-decoration:none;
 }
-
-/* Warna tombol khusus Dark Mode */
-[data-theme="dark"] .btn-block {
-    background: #e5e7eb;
-    color: #111827;
-}
-
-.btn-block:hover {
-    opacity: 0.9;
-    transform: translateY(-2px);
-}
-
-/* Footer Link */
-.auth-footer {
-    margin-top: 25px;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.auth-footer a {
-    color: #3b82f6;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.auth-footer a:hover {
-    text-decoration: underline;
-}
-
-/* Tombol Tema (Pojok Kanan Atas) */
-.theme-toggle-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-primary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.3s;
-}
-.theme-toggle-btn:hover {
-    background: var(--bg-input);
+.auth-footer a:hover{
+    color: var(--auth-accent);
+    text-decoration:underline;
 }

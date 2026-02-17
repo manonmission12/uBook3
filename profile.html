@@ -1,122 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil Saya - uBook</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <link rel="stylesheet" href="global.css">
-    <link rel="stylesheet" href="profile.css">
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Profil • uBook</title>
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+	<link rel="stylesheet" href="global.css">
+	<link rel="stylesheet" href="profile.css">
+	<link rel="stylesheet" href="mobile.css">
 </head>
 <body>
+	<nav class="navbar">
+		<div class="nav-container">
+			<a href="index.html" class="brand">
+				<i class="fas fa-book-reader"></i>
+				<span>Era Baru</span>
+			</a>
 
-    <nav class="navbar">
-        <div class="nav-brand">
-            <a href="index.html" style="text-decoration: none; color: inherit;">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
-        </div>
-        <div class="nav-actions">
-            <button id="themeToggle" class="icon-btn"><i class="fas fa-moon"></i></button>
-        </div>
-    </nav>
+			<div class="nav-right">
+				<!-- MOVED: tombol Beranda taruh di kanan (sebelum theme + profile) -->
+				<a href="index.html" class="nav-link nav-link-home">
+					<i class="fas fa-house" style="margin-right:8px;"></i> Beranda
+				</a>
 
-    <div class="profile-container">
-        <div class="profile-card">
-            <div class="profile-header">
-                <div class="avatar-wrapper">
-                    <div class="avatar-large" id="profileAvatarDisplay">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <button class="btn-edit-photo" onclick="document.getElementById('avatarInput').click()">
-                        <i class="fas fa-camera"></i>
-                    </button>
-                    <input type="file" id="avatarInput" accept="image/*" style="display: none;">
-                </div>
-                <p class="photo-hint">Ukuran rekomen: 300x300 px (1:1)</p>
-                <h1 id="displayName">Nama User</h1>
-                <p class="user-role">Member uBook</p>
-                <p id="joinDate" class="join-date">Bergabung: -</p>
-            </div>
+				<button id="themeToggle" class="theme-btn desktop-only" title="Ganti Tema">
+					<i class="fas fa-moon"></i>
+				</button>
 
-            <div class="profile-stats">
-                <div class="stat-item">
-                    <h3 id="statUploads">0</h3>
-                    <span>Upload</span>
-                </div>
-                <div class="stat-item">
-                    <h3 id="statSaved">0</h3>
-                    <span>Disimpan</span>
-                </div>
-            </div>
+				<div class="profile-menu" id="profileMenuWrapper">
+					<div class="profile-trigger" id="profileTrigger" tabindex="0">
+						<span id="userDisplay" class="user-name">User</span>
+						<img class="avatar" alt="Profil">
+					</div>
 
-            <button id="logoutBtn" class="btn-logout">Keluar Akun</button>
-        </div>
+					<div class="dropdown-menu" id="profileDropdown">
+						<a href="profile.html" class="dropdown-item"><i class="fas fa-user"></i> Profil Saya</a>
+						<a href="#koleksi" class="dropdown-item"><i class="fas fa-bookmark"></i> Koleksi Saya</a>
+						<div class="dropdown-divider"></div>
+						<button id="logoutBtn" class="dropdown-item logout" type="button">
+							<i class="fas fa-sign-out-alt"></i> Logout
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</nav>
 
-        <div class="profile-content-right">
-            
-            <div class="user-uploads-section">
-                <h2 style="color: #3b82f6;"><i class="fas fa-book-reader"></i> Sedang Dibaca</h2>
-                <div id="readingSection" class="book-grid-mini">
-                    </div>
-            </div>
+	<main class="profile-container" id="top">
+		<aside class="profile-card">
+			<div class="avatar-wrapper">
+				<div class="avatar-large" id="avatarLarge">U</div>
+				<button class="btn-edit-photo" id="btnEditPhoto" type="button" title="Ganti Foto">
+					<i class="fas fa-camera"></i>
+				</button>
+				<input id="avatarFile" type="file" accept="image/*" style="display:none">
+			</div>
 
-            <div class="user-uploads-section">
-                <h2 style="color: #10b981;"><i class="fas fa-check-circle"></i> Selesai Dibaca</h2>
-                <div id="finishedSection" class="book-grid-mini">
-                    </div>
-            </div>
+			<!-- FIX: pastikan hint tidak overlap (biarkan di bawah wrapper, center) -->
+			<p class="photo-hint">Klik ikon kamera untuk mengganti foto profil.</p>
 
-            <div class="user-uploads-section">
-                <h2 style="color: #ef4444;"><i class="fas fa-heart"></i> Koleksi Favorit</h2>
-                <div id="savedBookGrid" class="book-grid-mini">
-                    </div>
-            </div>
+			<header class="profile-header" style="text-align:center;">
+				<h1 id="profileName">User</h1>
+				<p class="join-date" id="joinDate">—</p>
+			</header>
 
-            <div class="user-uploads-section">
-                <h2><i class="fas fa-cloud-upload-alt"></i> Upload Saya</h2>
-                <div id="userBookGrid" class="book-grid-mini">
-                    </div>
-            </div>
+			<section class="profile-stats" aria-label="Statistik">
+				<div class="stat-item">
+					<h3 id="statUploads">0</h3>
+					<span>Uploads</span>
+				</div>
+				<div class="stat-item">
+					<h3 id="statSaved">0</h3>
+					<span>Favorit</span>
+				</div>
+			</section>
 
-        </div>
-    </div>
+			<button class="btn-logout" id="logoutBtnBig" type="button">
+				<i class="fas fa-sign-out-alt"></i> Logout
+			</button>
 
-    <footer class="main-footer">
-        <div class="footer-content">
-            <div class="footer-section brand">
-                <h3><i class="fas fa-book-open"></i> u<span class="highlight">Book</span></h3>
-                <p>Platform perpustakaan digital masa depan.</p>
-                <div class="social-links">
-                    <a href="#"><i class="fab fa-instagram"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-github"></i></a>
-                </div>
-            </div>
-            <div class="footer-section links">
-                <h4>Jelajahi</h4>
-                <ul>
-                    <li><a href="index.html">Beranda</a></li>
-                    <li><a href="upload.html">Upload Buku</a></li>
-                    <li><a href="profile.html">Profil Saya</a></li>
-                </ul>
-            </div>
-            <div class="footer-section links">
-                <h4>Bantuan</h4>
-                <ul>
-                    <li><a href="#">FAQ</a></li>
-                    <li><a href="#">Syarat & Ketentuan</a></li>
-                    <li><a href="#">Hubungi Kami</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2026 uBook. All rights reserved.</p>
-        </div>
-    </footer>
+			<!-- NEW: Delete Account -->
+			<button class="btn-delete-account" id="deleteAccountBtn" type="button" style="
+				width:100%;
+				margin-top:10px;
+				padding:12px 14px;
+				background:transparent;
+				color:#ef4444;
+				border:1px solid #fecaca;
+				border-radius:12px;
+				font-weight:700;
+				cursor:pointer;
+				display:flex;
+				align-items:center;
+				justify-content:center;
+				gap:8px;
+				font-size:0.88rem;
+				transition: background 0.15s ease, color 0.15s ease;
+			">
+				<i class="fas fa-trash-alt"></i> Hapus Akun
+			</button>
+		</aside>
 
-    <script src="profile-script.js"></script>
+		<section class="profile-content-right">
+			<section class="user-uploads-section" id="koleksi">
+				<h2><i class="fas fa-bookmark"></i> Koleksi Saya</h2>
+				<div class="book-grid-mini" id="savedGrid"></div>
+				<div class="empty-msg" id="savedEmpty" style="display:none;">Belum ada buku favorit.</div>
+			</section>
+
+			<section class="user-uploads-section">
+				<h2><i class="fas fa-cloud-upload-alt"></i> Upload Saya</h2>
+				<div class="book-grid-mini" id="uploadsGrid"></div>
+				<div class="empty-msg" id="uploadsEmpty" style="display:none;">Belum ada upload.</div>
+			</section>
+		</section>
+	</main>
+
+	<script src="toast.js"></script>
+	<script src="profile-script.js"></script>
 </body>
 </html>

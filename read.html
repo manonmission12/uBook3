@@ -21,6 +21,7 @@
     <nav class="reader-nav">
         <div class="nav-left">
             <a href="index.html" class="nav-btn"><i class="fas fa-arrow-left"></i></a>
+            <a href="index.html" class="nav-btn" title="Beranda"><i class="fas fa-house"></i></a>
             <h3 id="bookTitleDisplay">Memuat...</h3>
         </div>
         
@@ -31,6 +32,8 @@
                 <span>/ <span id="pageTotal">--</span></span>
             </div>
             <button id="nextBtn" class="nav-btn"><i class="fas fa-chevron-right"></i></button>
+            <!-- Go To Page slider -->
+            <input id="pageSlider" type="range" min="1" value="1" title="Lompat Halaman Cepat" style="max-width:220px">
         </div>
 
         <div class="nav-right">
@@ -48,8 +51,14 @@
             <button id="zoomOut" class="tool-btn"><i class="fas fa-minus"></i></button>
             <span id="zoomLevel">100%</span>
             <button id="zoomIn" class="tool-btn"><i class="fas fa-plus"></i></button>
+            <button id="fitWidthBtn" class="tool-btn" title="Fit to Width"><i class="fas fa-expand"></i></button>
+            <button id="rotateBtn" class="tool-btn" title="Rotate 90°"><i class="fas fa-rotate-right"></i></button>
+            <button id="downloadPageBtn" class="tool-btn" title="Download Halaman"><i class="fas fa-download"></i></button>
+            <button id="helpBtn" class="tool-btn" title="Shortcut"><i class="fas fa-question-circle"></i></button>
             
             <button id="finishBtn" class="finish-btn" style="display:none;">Selesai</button>
+            <button id="bookmarkBtn" class="tool-btn" title="Bookmark Halaman"><i class="fas fa-bookmark"></i></button>
+            <button id="scrollModeBtn" class="tool-btn" title="Scroll Mode"><i class="fas fa-scroll"></i></button>
         </div>
     </nav>
 
@@ -60,14 +69,44 @@
         </aside>
 
         <main class="content-area" id="pdfContainer">
-            <div class="pdf-wrapper">
+            <!-- progress bar -->
+            <div id="pageProgressBar" class="page-progress-bar" aria-hidden="false" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+            <div class="pdf-wrapper" id="singlePageWrapper">
                 <canvas id="the-canvas"></canvas>
                 <div id="text-layer" class="textLayer"></div>
                 <canvas id="highlight-canvas" class="highlight-layer"></canvas>
             </div>
+            <!-- mode scroll: stack wrapper -->
+            <div id="scrollStack" class="scroll-stack" style="display:none">
+                <!-- setiap halaman akan membuat <section class="page-stack"><canvas/><div.page-text></div></section> -->
+            </div>
         </main>
 
         <aside class="sidebar right">
+            <div class="sidebar-header">Bookmarks</div>
+            <div id="bookmarkList" class="notes-list" style="padding:10px;"></div>
+
+            <div class="sidebar-header">Highlighter</div>
+            <div class="highlighter-panel">
+                <!-- label + color -->
+                <label for="highlightColor">Warna</label>
+                <input id="highlightColor" type="color" value="#fff275">
+                <!-- label + size -->
+                <label for="highlightSize">Ketebalan</label>
+                <input id="highlightSize" type="range" min="8" max="80" value="24">
+                <!-- optional preview row -->
+                <div class="highlight-preview">
+                    <span class="preview-dot" aria-hidden="true"></span>
+                    <small style="color:#9ca3af">Preview warna & ukuran</small>
+                </div>
+                <!-- actions -->
+                <div class="highlighter-actions">
+                    <button id="exportAnnBtn" class="btn-primary">Export Anotasi</button>
+                    <input id="importAnnFile" type="file" accept="application/json" style="display:none">
+                    <button id="importAnnBtn" class="btn-primary">Import</button>
+                </div>
+            </div>
+
             <div class="sidebar-header">Catatan</div>
             <div class="notes-wrapper">
                 <div id="notesList" class="notes-list"></div>
@@ -82,6 +121,22 @@
     <div id="loadingOverlay" class="loading-overlay active">
         <div class="spinner"></div>
         <p style="margin-top:10px; color:white;">Sedang Memuat...</p>
+    </div>
+
+    <!-- help overlay -->
+    <div id="readerHelp" class="reader-help" style="display:none" aria-modal="true" role="dialog">
+        <div class="help-box">
+            <h4>Shortcut</h4>
+            <ul>
+                <li>←/→: halaman sebelumnya/berikutnya</li>
+                <li>Ctrl + + / -: zoom</li>
+                <li>0: reset zoom</li>
+                <li>H / E / M: highlight / eraser / move</li>
+                <li>B: bookmark</li>
+                <li>Double-click: toggle zoom</li>
+            </ul>
+            <button id="closeHelp" class="tool-btn" style="margin-top:8px"><i class="fas fa-times"></i> Tutup</button>
+        </div>
     </div>
 
     <script src="read-script.js"></script>
